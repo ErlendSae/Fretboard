@@ -27,7 +27,7 @@ export default function App() {
               className={({ isActive }) =>
                 `text-sm font-medium transition-colors duration-150 shrink-0 ${
                   isActive
-                    ? 'text-stone-100 border-b-2 border-stone-300 pb-0.5'
+                    ? 'text-rose-400 border-b-2 border-rose-400 pb-0.5'
                     : 'text-stone-500 hover:text-stone-300'
                 }`
               }

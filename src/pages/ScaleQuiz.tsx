@@ -83,7 +83,7 @@ export default function ScaleQuiz() {
       for (let f = 0; f <= NUM_FRETS; f++) {
         const note = fretToNote(s, f)
         if (!scaleNotes.has(note)) continue
-        if (`${s}-${f}` === targetKey) continue // will push separately
+        if (`${s}-${f}` === targetKey) continue
         list.push({ stringIndex: s, fret: f, variant: note === root ? 'root' : 'scale' })
       }
     }
@@ -99,7 +99,9 @@ export default function ScaleQuiz() {
   const isInScale = scaleNotes.has(target.note)
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+
+      {/* Header */}
       <div className="animate-fade-up">
         <h1 className="text-2xl font-bold text-stone-100 mb-1">Scale Quiz</h1>
         <p className="text-stone-500 text-sm">
@@ -107,7 +109,7 @@ export default function ScaleQuiz() {
         </p>
       </div>
 
-      {/* Key selector */}
+      {/* Key + Scale controls */}
       <div className="flex flex-wrap gap-6 items-end animate-fade-up">
         <div className="space-y-2">
           <label className="text-xs uppercase tracking-widest text-stone-500 font-semibold">Key</label>
@@ -118,7 +120,7 @@ export default function ScaleQuiz() {
                 onClick={() => setRoot(note)}
                 className={`w-10 h-10 rounded-lg text-sm font-semibold font-mono transition-all duration-150 border
                   ${root === note
-                    ? 'bg-stone-200 text-stone-900 border-stone-200 shadow-md'
+                    ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/20 shadow-md'
                     : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
                   }`}
               >
@@ -143,14 +145,90 @@ export default function ScaleQuiz() {
         </div>
       </div>
 
-      {/* Scale info */}
-      <div className="bg-stone-800/60 border border-stone-700/60 rounded-xl px-5 py-4 animate-fade-up space-y-2">
-        <p className="text-stone-300 text-sm leading-relaxed">{scale.description}</p>
-        <div className="flex flex-wrap gap-1.5">
-          {scale.genres.map(g => (
-            <span key={g} className="px-2 py-0.5 rounded text-xs font-medium bg-stone-700 text-stone-400">{g}</span>
-          ))}
-        </div>
+      {/* Fretboard + legend — the hero, now above the question card */}
+      <div className="space-y-3 animate-fade-up">
+        {phase === 'question' && (
+          <div className="flex items-center gap-3 text-xs text-stone-500">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-sky-400" />
+              <span>Question note</span>
+            </div>
+            <span className="text-stone-700">·</span>
+            <span>In {root} {scale.name}?</span>
+          </div>
+        )}
+        {phase === 'revealed' && (
+          <div className="flex items-center gap-3 text-xs text-stone-500 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-stone-100" />
+              <span>Root</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-rose-300" />
+              <span>In scale</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className={`w-3 h-3 rounded-full ${isInScale ? 'bg-emerald-400' : 'bg-red-400'}`} />
+              <span>Tested note ({target.note})</span>
+            </div>
+          </div>
+        )}
+        <Fretboard markers={markers} />
+      </div>
+
+      {/* Question / Result card — now below the fretboard */}
+      <div className="bg-stone-800 border border-stone-700 rounded-2xl p-8 flex flex-col items-center gap-5 min-h-48 animate-fade-up">
+        {phase === 'question' && (
+          <div className="flex flex-col items-center gap-5 animate-fade-up">
+            <p className="text-stone-400 text-xs uppercase tracking-widest">Is this note in the scale?</p>
+            <div className="text-center">
+              <span className="text-4xl font-black text-stone-100 font-mono">{target.note}</span>
+              <span className="text-stone-500 text-lg ml-3">in {root} {scale.name}?</span>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleAnswer(true)}
+                className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
+                  font-bold px-8 py-2.5 rounded-xl transition-all duration-150 shadow-lg shadow-rose-500/20"
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => handleAnswer(false)}
+                className="bg-stone-700 hover:bg-stone-600 active:scale-95 text-stone-200
+                  font-bold px-8 py-2.5 rounded-xl transition-all duration-150 border border-stone-600"
+              >
+                No
+              </button>
+            </div>
+            <p className="text-xs text-stone-600">Y = Yes · N = No</p>
+          </div>
+        )}
+
+        {phase === 'revealed' && (
+          <div className="flex flex-col items-center gap-5 w-full animate-fade-up">
+            <div className={`w-full rounded-xl border px-5 py-4 space-y-2 ${
+              wasCorrect
+                ? 'border-emerald-700/60 bg-emerald-900/30 text-emerald-300'
+                : 'border-red-800/60 bg-red-900/30 text-red-300'
+            }`}>
+              <p className="text-lg font-bold">{wasCorrect ? 'Correct!' : 'Wrong'}</p>
+              <p className="text-sm">
+                <span className="font-mono font-bold text-stone-100">{target.note}</span>
+                {' '}{isInScale ? 'is' : 'is not'} in {root} {scale.name}.
+                {isInScale && target.note === root && ' (It\'s the root!)'}
+              </p>
+            </div>
+            <button
+              onClick={nextQuestion}
+              className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
+                font-bold px-6 py-2 rounded-xl transition-all duration-150 shadow-lg shadow-rose-500/20"
+            >
+              Next note
+            </button>
+            <p className="text-xs text-stone-600">Space / Enter for next</p>
+          </div>
+        )}
       </div>
 
       {/* Stats */}
@@ -183,91 +261,16 @@ export default function ScaleQuiz() {
         )}
       </div>
 
-      {/* Question card */}
-      <div className="bg-stone-800 border border-stone-700 rounded-2xl p-8 flex flex-col items-center gap-5 min-h-48">
-        {phase === 'question' && (
-          <div className="flex flex-col items-center gap-5 animate-fade-up">
-            <p className="text-stone-400 text-xs uppercase tracking-widest">Is this note in the scale?</p>
-            <div className="text-center">
-              <span className="text-4xl font-black text-stone-100 font-mono">{target.note}</span>
-              <span className="text-stone-500 text-lg ml-3">in {root} {scale.name}?</span>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => handleAnswer(true)}
-                className="bg-stone-200 hover:bg-stone-100 active:scale-95 text-stone-900
-                  font-bold px-8 py-2.5 rounded-xl transition-all duration-150 shadow-lg"
-              >
-                Yes
-              </button>
-              <button
-                onClick={() => handleAnswer(false)}
-                className="bg-stone-700 hover:bg-stone-600 active:scale-95 text-stone-200
-                  font-bold px-8 py-2.5 rounded-xl transition-all duration-150 border border-stone-600"
-              >
-                No
-              </button>
-            </div>
-            <p className="text-xs text-stone-600">Y = Yes · N = No</p>
-          </div>
-        )}
-
-        {phase === 'revealed' && (
-          <div className="flex flex-col items-center gap-5 w-full animate-fade-up">
-            <div className={`w-full rounded-xl border px-5 py-4 space-y-2 ${
-              wasCorrect
-                ? 'border-emerald-700/60 bg-emerald-900/30 text-emerald-300'
-                : 'border-red-800/60 bg-red-900/30 text-red-300'
-            }`}>
-              <p className="text-lg font-bold">{wasCorrect ? 'Correct!' : 'Wrong'}</p>
-              <p className="text-sm">
-                <span className="font-mono font-bold text-stone-100">{target.note}</span>
-                {' '}{isInScale ? 'is' : 'is not'} in {root} {scale.name}.
-                {isInScale && target.note === root && ' (It\'s the root!)'}
-              </p>
-            </div>
-            <button
-              onClick={nextQuestion}
-              className="bg-stone-200 hover:bg-stone-100 active:scale-95 text-stone-900
-                font-bold px-6 py-2 rounded-xl transition-all duration-150 shadow-lg"
-            >
-              Next note
-            </button>
-            <p className="text-xs text-stone-600">Space / Enter for next</p>
-          </div>
-        )}
+      {/* Scale info — supplementary context at the bottom */}
+      <div className="bg-stone-800/60 border border-stone-700/60 rounded-xl px-5 py-4 space-y-2">
+        <p className="text-stone-300 text-sm leading-relaxed">{scale.description}</p>
+        <div className="flex flex-wrap gap-1.5">
+          {scale.genres.map(g => (
+            <span key={g} className="px-2 py-0.5 rounded text-xs font-medium bg-stone-700 text-stone-400">{g}</span>
+          ))}
+        </div>
       </div>
 
-      {/* Fretboard */}
-      <div className="space-y-2 animate-fade-up">
-        {phase === 'question' && (
-          <div className="flex items-center gap-3 text-xs text-stone-500">
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-indigo-400" />
-              <span>Question note</span>
-            </div>
-            <span className="text-stone-700">·</span>
-            <span>In {root} {scale.name}?</span>
-          </div>
-        )}
-        {phase === 'revealed' && (
-          <div className="flex items-center gap-3 text-xs text-stone-500 flex-wrap">
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-stone-100" />
-              <span>Root</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-teal-400" />
-              <span>In scale</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className={`w-3 h-3 rounded-full ${isInScale ? 'bg-emerald-400' : 'bg-red-400'}`} />
-              <span>Tested note ({target.note})</span>
-            </div>
-          </div>
-        )}
-        <Fretboard markers={markers} />
-      </div>
     </div>
   )
 }

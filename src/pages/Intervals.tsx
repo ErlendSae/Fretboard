@@ -106,7 +106,6 @@ export default function Intervals() {
 
   const interval = INTERVALS[intervalIdx]!
 
-  // Reset when interval or mode changes
   useEffect(() => {
     setRootPos(null)
     setGuessResults(new Map())
@@ -120,41 +119,36 @@ export default function Intervals() {
 
   const handleFretClick = useCallback((s: number, f: number) => {
     if (!rootPos) {
-      // First click always sets the root
       setRootPos({ stringIndex: s, fret: f })
       return
     }
 
     if (!quizMode) {
-      // Study mode: re-clicking changes root
       setRootPos({ stringIndex: s, fret: f })
       setGuessResults(new Map())
       setRevealed(false)
       return
     }
 
-    // Quiz mode: clicking root itself is ignored
     if (s === rootPos.stringIndex && f === rootPos.fret) return
 
     const key = `${s}-${f}`
-    if (guessResults.has(key)) return // already guessed
+    if (guessResults.has(key)) return
 
     const isCorrect = targetNote !== null && fretToNote(s, f) === targetNote
     setGuessResults(prev => new Map(prev).set(key, isCorrect ? 'correct' : 'wrong'))
   }, [rootPos, quizMode, targetNote, guessResults])
 
-  // Build markers
   const markers: FretMarker[] = (() => {
     if (!rootPos) return []
 
     const rootKey = `${rootPos.stringIndex}-${rootPos.fret}`
 
     if (!quizMode) {
-      // Study mode: root + all target positions as chord (amber)
       const list: FretMarker[] = []
       if (targetNote) {
         for (const pos of allPositionsOf(targetNote)) {
-          if (`${pos.stringIndex}-${pos.fret}` === rootKey) continue // root shown separately
+          if (`${pos.stringIndex}-${pos.fret}` === rootKey) continue
           list.push({ stringIndex: pos.stringIndex, fret: pos.fret, variant: 'chord' })
         }
       }
@@ -162,7 +156,6 @@ export default function Intervals() {
       return list
     }
 
-    // Quiz mode
     const list: FretMarker[] = []
     list.push({ stringIndex: rootPos.stringIndex, fret: rootPos.fret, variant: 'root' })
 
@@ -187,7 +180,6 @@ export default function Intervals() {
     return list
   })()
 
-  // Quiz score: count correct target positions found
   const targetPositions = targetNote
     ? allPositionsOf(targetNote).filter(p => `${p.stringIndex}-${p.fret}` !== (rootPos ? `${rootPos.stringIndex}-${rootPos.fret}` : ''))
     : []
@@ -196,7 +188,9 @@ export default function Intervals() {
   const totalTargets = targetPositions.length
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+
+      {/* Header */}
       <div className="animate-fade-up">
         <h1 className="text-2xl font-bold text-stone-100 mb-1">Interval Trainer</h1>
         <p className="text-stone-500 text-sm">
@@ -206,7 +200,6 @@ export default function Intervals() {
 
       {/* Controls */}
       <div className="flex flex-wrap gap-6 items-end animate-fade-up">
-        {/* Interval selector */}
         <div className="space-y-2">
           <label className="text-xs uppercase tracking-widest text-stone-500 font-semibold">Interval</label>
           <div className="flex flex-wrap gap-2">
@@ -217,7 +210,7 @@ export default function Intervals() {
                 title={iv.name}
                 className={`px-3 py-2 rounded-lg text-sm font-semibold font-mono transition-all duration-150 border
                   ${intervalIdx === i
-                    ? 'bg-stone-200 text-stone-900 border-stone-200 shadow-md'
+                    ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/20 shadow-md'
                     : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
                   }`}
               >
@@ -227,7 +220,6 @@ export default function Intervals() {
           </div>
         </div>
 
-        {/* Mode toggle */}
         <div className="space-y-2">
           <label className="text-xs uppercase tracking-widest text-stone-500 font-semibold">Mode</label>
           <div className="flex rounded-lg overflow-hidden border border-stone-700 text-sm font-medium">
@@ -237,7 +229,7 @@ export default function Intervals() {
                 onClick={() => setQuizMode(mode === 'Quiz')}
                 className={`px-4 py-2 transition-colors duration-150 ${
                   quizMode === (mode === 'Quiz')
-                    ? 'bg-stone-200 text-stone-900'
+                    ? 'bg-rose-500 text-white'
                     : 'bg-stone-800 text-stone-400 hover:text-stone-200'
                 }`}
               >
@@ -248,21 +240,7 @@ export default function Intervals() {
         </div>
       </div>
 
-      {/* Interval info */}
-      <div className="bg-stone-800/60 border border-stone-700/60 rounded-xl px-5 py-4 animate-fade-up space-y-2">
-        <div className="flex items-baseline gap-3">
-          <span className="text-stone-100 font-semibold">{interval.name}</span>
-          <span className="text-stone-500 text-xs">{interval.semitones} semitone{interval.semitones !== 1 ? 's' : ''}</span>
-        </div>
-        <p className="text-stone-300 text-sm leading-relaxed">{interval.description}</p>
-        <div className="flex flex-wrap gap-1.5">
-          {interval.usedIn.map(u => (
-            <span key={u} className="px-2 py-0.5 rounded text-xs font-medium bg-stone-700 text-stone-400">{u}</span>
-          ))}
-        </div>
-      </div>
-
-      {/* Status + info card */}
+      {/* Status card — instruction or root/target display */}
       <div className="bg-stone-800 border border-stone-700 rounded-xl px-5 py-4 animate-fade-up">
         {!rootPos ? (
           <p className="text-stone-400 text-sm">
@@ -275,7 +253,7 @@ export default function Intervals() {
             </span>
             <span className="text-stone-400">
               {interval.name}:{' '}
-              <span className="text-amber-300 font-semibold font-mono">{targetNote}</span>
+              <span className="text-rose-300 font-semibold font-mono">{targetNote}</span>
             </span>
             {quizMode && rootPos && (
               <span className="text-stone-400">
@@ -286,6 +264,45 @@ export default function Intervals() {
               </span>
             )}
           </div>
+        )}
+      </div>
+
+      {/* Fretboard — the hero */}
+      <Fretboard
+        markers={markers}
+        onFretClick={handleFretClick}
+        clickableStrings
+      />
+
+      {/* Legend */}
+      <div className="flex items-center gap-5 text-sm text-stone-400 flex-wrap animate-fade-up">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded-full bg-stone-100 ring-1 ring-stone-400/40" />
+          <span>Root</span>
+        </div>
+        {!quizMode && (
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-full bg-violet-300 ring-1 ring-violet-200/40" />
+            <span>{interval.name} positions</span>
+          </div>
+        )}
+        {quizMode && (
+          <>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-emerald-400 ring-1 ring-emerald-200/40" />
+              <span>Correct guess</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-red-400 ring-1 ring-red-200/40" />
+              <span>Wrong guess</span>
+            </div>
+            {revealed && (
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-sky-400 ring-1 ring-sky-200/40" />
+                <span>Revealed</span>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -312,43 +329,20 @@ export default function Intervals() {
         </div>
       )}
 
-      {/* Legend */}
-      <div className="flex items-center gap-5 text-sm text-stone-400 flex-wrap animate-fade-up">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full bg-stone-100 ring-1 ring-stone-400/40" />
-          <span>Root</span>
+      {/* Interval info — supplementary context below the fretboard */}
+      <div className="bg-stone-800/60 border border-stone-700/60 rounded-xl px-5 py-4 space-y-2">
+        <div className="flex items-baseline gap-3">
+          <span className="text-stone-100 font-semibold">{interval.name}</span>
+          <span className="text-stone-500 text-xs">{interval.semitones} semitone{interval.semitones !== 1 ? 's' : ''}</span>
         </div>
-        {!quizMode && (
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full bg-amber-300 ring-1 ring-amber-100/40" />
-            <span>{interval.name} positions</span>
-          </div>
-        )}
-        {quizMode && (
-          <>
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-emerald-400 ring-1 ring-emerald-200/40" />
-              <span>Correct guess</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-red-400 ring-1 ring-red-200/40" />
-              <span>Wrong guess</span>
-            </div>
-            {revealed && (
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-indigo-400 ring-1 ring-indigo-200/40" />
-                <span>Revealed</span>
-              </div>
-            )}
-          </>
-        )}
+        <p className="text-stone-300 text-sm leading-relaxed">{interval.description}</p>
+        <div className="flex flex-wrap gap-1.5">
+          {interval.usedIn.map(u => (
+            <span key={u} className="px-2 py-0.5 rounded text-xs font-medium bg-stone-700 text-stone-400">{u}</span>
+          ))}
+        </div>
       </div>
 
-      <Fretboard
-        markers={markers}
-        onFretClick={handleFretClick}
-        clickableStrings
-      />
     </div>
   )
 }

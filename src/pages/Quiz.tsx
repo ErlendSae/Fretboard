@@ -287,8 +287,8 @@ export default function Quiz() {
             </p>
             <button
               onClick={startRound}
-              className="bg-stone-200 hover:bg-stone-100 active:scale-95 text-stone-900
-                font-bold px-8 py-3 rounded-xl text-lg transition-all duration-150 shadow-lg"
+              className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
+                font-bold px-8 py-3 rounded-xl text-lg transition-all duration-150 shadow-lg shadow-rose-500/20"
             >
               Start
             </button>
@@ -317,8 +317,8 @@ export default function Quiz() {
               </button>
               <button
                 onClick={() => startListening(target)}
-                className="bg-stone-200 hover:bg-stone-100 active:scale-95 text-stone-900
-                  font-bold px-6 py-2 rounded-xl transition-all duration-150 shadow-lg"
+                className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
+                  font-bold px-6 py-2 rounded-xl transition-all duration-150 shadow-lg shadow-rose-500/20"
               >
                 Check →
               </button>
@@ -387,8 +387,8 @@ export default function Quiz() {
               </button>
               <button
                 onClick={startRound}
-                className="bg-stone-200 hover:bg-stone-100 active:scale-95 text-stone-900
-                  font-bold px-5 py-2 rounded-lg transition-all duration-150 text-sm shadow-lg"
+                className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
+                  font-bold px-5 py-2 rounded-lg transition-all duration-150 text-sm shadow-lg shadow-rose-500/20"
               >
                 Next note
               </button>
@@ -410,7 +410,7 @@ export default function Quiz() {
               {result?.detectedNote && result.detectedNote !== target.note && (
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-indigo-400" />
+                    <div className="w-3 h-3 rounded-full bg-rose-400" />
                     <span>Target ({target.note})</span>
                   </div>
                   <div className="flex items-center gap-1.5">
