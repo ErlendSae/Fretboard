@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import Fretboard, { type FretMarker } from '../components/Fretboard'
 import {
   CHROMATIC_NOTES, type NoteName,
@@ -6,6 +6,7 @@ import {
   fretToNote,
 } from '../utils/notes'
 import { SCALES, getScaleNotes } from '../utils/scales'
+import { genreColorClass } from '../utils/genreColors'
 
 type Phase = 'question' | 'revealed'
 
@@ -28,6 +29,9 @@ export default function ScaleQuiz() {
   const [phase, setPhase] = useState<Phase>('question')
   const [wasCorrect, setWasCorrect] = useState(false)
   const [stats, setStats] = useState({ total: 0, correct: 0 })
+  const [canUndo, setCanUndo] = useState(false)
+  const undoStatsRef = useRef<{ total: number; correct: number } | null>(null)
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const scale = SCALES[scaleIdx]!
   const scaleNotes = getScaleNotes(root, scale)
@@ -36,15 +40,34 @@ export default function ScaleQuiz() {
   useEffect(() => {
     setTarget(randomTarget())
     setPhase('question')
+    setCanUndo(false)
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
   }, [root, scaleIdx])
+
+  useEffect(() => {
+    return () => { if (undoTimerRef.current) clearTimeout(undoTimerRef.current) }
+  }, [])
 
   const handleAnswer = useCallback((answer: boolean) => {
     const isInScale = scaleNotes.has(target.note)
     const correct = answer === isInScale
     setWasCorrect(correct)
-    setStats(s => ({ total: s.total + 1, correct: s.correct + (correct ? 1 : 0) }))
+    setStats(s => {
+      undoStatsRef.current = s
+      return { total: s.total + 1, correct: s.correct + (correct ? 1 : 0) }
+    })
     setPhase('revealed')
+    setCanUndo(true)
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+    undoTimerRef.current = setTimeout(() => setCanUndo(false), 1500)
   }, [target, scaleNotes])
+
+  const handleUndo = useCallback(() => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
+    setCanUndo(false)
+    if (undoStatsRef.current) setStats(undoStatsRef.current)
+    setPhase('question')
+  }, [])
 
   const nextQuestion = useCallback(() => {
     setTarget(randomTarget())
@@ -112,7 +135,7 @@ export default function ScaleQuiz() {
       {/* Key + Scale controls */}
       <div className="flex flex-wrap gap-6 items-end animate-fade-up">
         <div className="space-y-2">
-          <label className="text-xs uppercase tracking-widest text-stone-500 font-semibold">Key</label>
+          <label className="text-[11px] font-medium text-stone-400">Key</label>
           <div className="flex flex-wrap gap-2">
             {CHROMATIC_NOTES.map((note) => (
               <button
@@ -130,7 +153,7 @@ export default function ScaleQuiz() {
           </div>
         </div>
         <div className="space-y-2">
-          <label className="text-xs uppercase tracking-widest text-stone-500 font-semibold">Scale</label>
+          <label className="text-[11px] font-medium text-stone-400">Scale</label>
           <select
             value={scaleIdx}
             onChange={(e) => setScaleIdx(Number(e.target.value))}
@@ -150,7 +173,7 @@ export default function ScaleQuiz() {
         {phase === 'question' && (
           <div className="flex items-center gap-3 text-xs text-stone-500">
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-sky-400" />
+              <div className="w-4 h-4 rounded-full bg-sky-400" />
               <span>Question note</span>
             </div>
             <span className="text-stone-700">·</span>
@@ -160,11 +183,11 @@ export default function ScaleQuiz() {
         {phase === 'revealed' && (
           <div className="flex items-center gap-3 text-xs text-stone-500 flex-wrap">
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-stone-100" />
+              <div className="w-4 h-4 rounded-full bg-stone-100" />
               <span>Root</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-rose-300" />
+              <div className="w-4 h-4 rounded-full bg-rose-300" />
               <span>In scale</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -180,7 +203,7 @@ export default function ScaleQuiz() {
       <div className="bg-stone-800 border border-stone-700 rounded-2xl p-8 flex flex-col items-center gap-5 min-h-48 animate-fade-up">
         {phase === 'question' && (
           <div className="flex flex-col items-center gap-5 animate-fade-up">
-            <p className="text-stone-400 text-xs uppercase tracking-widest">Is this note in the scale?</p>
+            <p className="text-xs text-stone-400 font-medium">Is this note in the scale?</p>
             <div className="text-center">
               <span className="text-4xl font-black text-stone-100 font-mono">{target.note}</span>
               <span className="text-stone-500 text-lg ml-3">in {root} {scale.name}?</span>
@@ -219,13 +242,23 @@ export default function ScaleQuiz() {
                 {isInScale && target.note === root && ' (It\'s the root!)'}
               </p>
             </div>
-            <button
-              onClick={nextQuestion}
-              className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
-                font-bold px-6 py-2 rounded-xl transition-all duration-150 shadow-lg shadow-rose-500/20"
-            >
-              Next note
-            </button>
+            <div className="flex items-center gap-3">
+              {canUndo && (
+                <button
+                  onClick={handleUndo}
+                  className="animate-fade-up text-sm text-stone-500 hover:text-stone-300 transition-colors duration-150 px-3 py-2 rounded-lg border border-stone-700 hover:border-stone-500"
+                >
+                  Undo
+                </button>
+              )}
+              <button
+                onClick={nextQuestion}
+                className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
+                  font-bold px-6 py-2 rounded-xl transition-all duration-150 shadow-lg shadow-rose-500/20"
+              >
+                Next note
+              </button>
+            </div>
             <p className="text-xs text-stone-600">Space / Enter for next</p>
           </div>
         )}
@@ -266,7 +299,7 @@ export default function ScaleQuiz() {
         <p className="text-stone-300 text-sm leading-relaxed">{scale.description}</p>
         <div className="flex flex-wrap gap-1.5">
           {scale.genres.map(g => (
-            <span key={g} className="px-2 py-0.5 rounded text-xs font-medium bg-stone-700 text-stone-400">{g}</span>
+            <span key={g} className={`px-2 py-0.5 rounded text-xs font-medium ${genreColorClass(g)}`}>{g}</span>
           ))}
         </div>
       </div>

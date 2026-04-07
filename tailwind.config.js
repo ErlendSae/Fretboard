@@ -26,11 +26,18 @@ export default {
           '0%, 100%': { opacity: '1', transform: 'scale(1)' },
           '50%': { opacity: '0.6', transform: 'scale(1.08)' },
         },
+        barBounce: {
+          '0%, 100%': { transform: 'scaleY(0.2)' },
+          '50%':       { transform: 'scaleY(1)' },
+        },
       },
       animation: {
-        'fade-up': 'fadeUp 0.2s ease-out both',
-        'count-pop': 'countPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both',
-        'mic-pulse': 'micPulse 1.8s ease-in-out infinite',
+        'fade-up':    'fadeUp 0.2s ease-out both',
+        // Fixed: was cubic-bezier(0.34,1.56,0.64,1) which overshoots (spring/bounce) — replaced with expo-out
+        'count-pop':  'countPop 0.25s cubic-bezier(0.16, 1, 0.3, 1) both',
+        'mic-pulse':  'micPulse 1.8s ease-in-out infinite',
+        // Duration overridden per-element via --beat-dur CSS custom property
+        'bar-bounce': 'barBounce var(--beat-dur, 706ms) ease-in-out infinite',
       },
     },
   },

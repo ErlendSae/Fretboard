@@ -16,56 +16,56 @@ interface IntervalDef {
 
 const INTERVALS: readonly IntervalDef[] = [
   {
-    label: 'b2',
+    label: '♭2',
     name: 'Minor 2nd',
     semitones: 1,
     description: 'One half-step — maximum tension. Creates strong dissonance and pull back to the root. The interval that makes horror music sound unsettling.',
     usedIn: ['Chromatic runs', 'Tension lines', 'Phrygian melody', 'Horror/dramatic themes'],
   },
   {
-    label: '2nd',
+    label: '2',
     name: 'Major 2nd',
     semitones: 2,
     description: 'Two half-steps. A gentle, unresolved tension. Forms the basis of sus2 chords and the smooth stepwise motion in most melodies.',
     usedIn: ['Sus2 chords', 'Melody steps', 'Add9 chords', 'Country & folk licks'],
   },
   {
-    label: 'b3',
+    label: '♭3',
     name: 'Minor 3rd',
     semitones: 3,
     description: 'Three half-steps. Defines minor quality — the darkening of a major chord. Essential in blues where it clashes expressively against major chord tones.',
     usedIn: ['Minor chords', 'Blues bends', 'Pentatonic minor', 'Power chord riffs'],
   },
   {
-    label: '3rd',
+    label: '3',
     name: 'Major 3rd',
     semitones: 4,
     description: 'Four half-steps. Defines major quality — the interval that makes a chord sound bright and resolved. One of the most important intervals to know on the neck.',
     usedIn: ['Major chords', 'Double-stops', 'Country chicken-pickin\'', 'Chord inversions'],
   },
   {
-    label: '4th',
+    label: '4',
     name: 'Perfect 4th',
     semitones: 5,
     description: 'Five half-steps. Open and stable — how standard guitar strings are tuned to each other (except B-G). The foundation of quartal harmony and sus4 chords.',
     usedIn: ['Sus4 chords', 'Power chord shapes', 'Quartal voicings', 'Bass lines'],
   },
   {
-    label: '5th',
+    label: '5',
     name: 'Perfect 5th',
     semitones: 7,
     description: 'Seven half-steps. The strongest, most stable consonance after the octave. Present in every major and minor chord. Power chords are just root + 5th.',
     usedIn: ['Power chords', 'Every major/minor chord', 'Bass movement', 'Pedal point riffs'],
   },
   {
-    label: '6th',
+    label: '6',
     name: 'Major 6th',
     semitones: 9,
     description: 'Nine half-steps. Warm and sweet — the characteristic sound of major 6th chords. Common in double-stop country and R&B leads, and in the melody of "My Way".',
     usedIn: ['Major 6th chords', 'Country double-stops', 'R&B melody', 'Add6 voicings'],
   },
   {
-    label: 'b7',
+    label: '♭7',
     name: 'Minor 7th',
     semitones: 10,
     description: 'Ten half-steps. Dominant and bluesy — the note that makes a dominant 7th chord want to resolve. Defines Mixolydian and the sound of classic rock.',
@@ -201,27 +201,30 @@ export default function Intervals() {
       {/* Controls */}
       <div className="flex flex-wrap gap-6 items-end animate-fade-up">
         <div className="space-y-2">
-          <label className="text-xs uppercase tracking-widest text-stone-500 font-semibold">Interval</label>
+          <label className="text-[11px] font-medium text-stone-400">Interval</label>
           <div className="flex flex-wrap gap-2">
             {INTERVALS.map((iv, i) => (
-              <button
-                key={iv.label}
-                onClick={() => setIntervalIdx(i)}
-                title={iv.name}
-                className={`px-3 py-2 rounded-lg text-sm font-semibold font-mono transition-all duration-150 border
-                  ${intervalIdx === i
-                    ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/20 shadow-md'
-                    : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
-                  }`}
-              >
-                {iv.label}
-              </button>
+              <div key={iv.label} className="relative group/iv">
+                <button
+                  onClick={() => setIntervalIdx(i)}
+                  className={`px-3 py-2 rounded-lg text-sm font-semibold font-mono transition-all duration-150 border
+                    ${intervalIdx === i
+                      ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/20 shadow-md'
+                      : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
+                    }`}
+                >
+                  {iv.label}
+                </button>
+                <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs bg-stone-900 text-stone-200 border border-stone-700 shadow-lg opacity-0 group-hover/iv:opacity-100 transition-opacity duration-150 z-20">
+                  {iv.name}
+                </span>
+              </div>
             ))}
           </div>
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs uppercase tracking-widest text-stone-500 font-semibold">Mode</label>
+          <label className="text-[11px] font-medium text-stone-400">Mode</label>
           <div className="flex rounded-lg overflow-hidden border border-stone-700 text-sm font-medium">
             {(['Study', 'Quiz'] as const).map((mode) => (
               <button
@@ -244,7 +247,9 @@ export default function Intervals() {
       <div className="bg-stone-800 border border-stone-700 rounded-xl px-5 py-4 animate-fade-up">
         {!rootPos ? (
           <p className="text-stone-400 text-sm">
-            Click any fret on the neck to set your root note.
+            {quizMode
+              ? `Click any fret to set your root — then tap every ${interval.name.toLowerCase()} position you can find.`
+              : 'Click any fret to set your root — all positions of that interval will appear.'}
           </p>
         ) : (
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
@@ -257,8 +262,14 @@ export default function Intervals() {
             </span>
             {quizMode && rootPos && (
               <span className="text-stone-400">
-                Found: <span className="text-stone-100 font-semibold">{correctGuesses}/{totalTargets}</span>
-                {wrongGuesses > 0 && (
+                Found:{' '}
+                <span className={`font-semibold ${correctGuesses === totalTargets && totalTargets > 0 ? 'text-emerald-400' : 'text-stone-100'}`}>
+                  {correctGuesses}/{totalTargets}
+                </span>
+                {correctGuesses === totalTargets && totalTargets > 0 && (
+                  <span className="text-emerald-400 ml-2">· All found!</span>
+                )}
+                {wrongGuesses > 0 && correctGuesses < totalTargets && (
                   <span className="text-red-400 ml-2">· {wrongGuesses} wrong</span>
                 )}
               </span>
@@ -277,28 +288,28 @@ export default function Intervals() {
       {/* Legend */}
       <div className="flex items-center gap-5 text-sm text-stone-400 flex-wrap animate-fade-up">
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full bg-stone-100 ring-1 ring-stone-400/40" />
+          <div className="w-4 h-4 rounded-full bg-stone-100 ring-1 ring-stone-400/40" />
           <span>Root</span>
         </div>
         {!quizMode && (
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full bg-violet-300 ring-1 ring-violet-200/40" />
+            <div className="w-4 h-4 rounded-full bg-violet-300 ring-1 ring-violet-200/40" />
             <span>{interval.name} positions</span>
           </div>
         )}
         {quizMode && (
           <>
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-emerald-400 ring-1 ring-emerald-200/40" />
+              <div className="w-4 h-4 rounded-full bg-emerald-400 ring-1 ring-emerald-200/40" />
               <span>Correct guess</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-red-400 ring-1 ring-red-200/40" />
+              <div className="w-4 h-4 rounded-full bg-red-400 ring-1 ring-red-200/40" />
               <span>Wrong guess</span>
             </div>
             {revealed && (
               <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-sky-400 ring-1 ring-sky-200/40" />
+                <div className="w-4 h-4 rounded-full bg-sky-400 ring-1 ring-sky-200/40" />
                 <span>Revealed</span>
               </div>
             )}
@@ -338,7 +349,7 @@ export default function Intervals() {
         <p className="text-stone-300 text-sm leading-relaxed">{interval.description}</p>
         <div className="flex flex-wrap gap-1.5">
           {interval.usedIn.map(u => (
-            <span key={u} className="px-2 py-0.5 rounded text-xs font-medium bg-stone-700 text-stone-400">{u}</span>
+            <span key={u} className="px-2 py-0.5 rounded text-xs font-medium bg-stone-700 text-stone-300">{u}</span>
           ))}
         </div>
       </div>

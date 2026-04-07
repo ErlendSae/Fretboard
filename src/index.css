@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* beatDot is used via inline animation style (dynamic duration/delay per dot),
+   so it must live here rather than in tailwind.config keyframes — Tailwind's
+   JIT won't emit a keyframe that isn't referenced by a scanned class name. */
+@keyframes beatDot {
+  0%   { opacity: 1;    transform: scale(1.4); }
+  15%  { opacity: 0.25; transform: scale(0.9); }
+  100% { opacity: 0.12; transform: scale(0.8); }
+}
+
 @layer base {
   :root {
     color-scheme: dark;

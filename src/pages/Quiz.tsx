@@ -299,7 +299,7 @@ export default function Quiz() {
         {/* TARGET */}
         {phase === 'target' && (
           <div className="flex flex-col items-center gap-5 animate-fade-up">
-            <p className="text-stone-500 text-xs uppercase tracking-widest">Find this note</p>
+            <p className="text-xs text-stone-400 font-medium">Find this note</p>
             <div className="text-8xl font-black text-stone-100 leading-none tracking-tight font-mono">
               {target.note}
             </div>
@@ -330,7 +330,7 @@ export default function Quiz() {
         {/* LISTENING */}
         {phase === 'listening' && (
           <div className="flex flex-col items-center gap-5 animate-fade-up">
-            <p className="text-stone-500 text-xs uppercase tracking-widest">Listening for</p>
+            <p className="text-xs text-stone-400 font-medium">Listening for</p>
             <div className="text-8xl font-black text-stone-600 leading-none tracking-tight font-mono">
               {target.note}
             </div>

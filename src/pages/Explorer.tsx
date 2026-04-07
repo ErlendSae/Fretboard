@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Fretboard, { type FretMarker } from '../components/Fretboard'
 import { CHROMATIC_NOTES, type NoteName, NUM_STRINGS, NUM_FRETS, fretToNote, noteIndex } from '../utils/notes'
 import { SCALES, getScaleNotes } from '../utils/scales'
+import { genreColorClass } from '../utils/genreColors'
 import { useBackingTrack } from '../hooks/useBackingTrack'
 
 const DEGREE_LABELS: Record<number, string> = {
@@ -26,6 +27,21 @@ export default function Explorer() {
 
   const scale = SCALES[scaleIdx]!
   const { isPlaying, toggle, bpm } = useBackingTrack(root, scale)
+
+  // Spacebar → play/pause. Use a ref so the listener never goes stale.
+  const toggleRef = useRef(toggle)
+  useEffect(() => { toggleRef.current = toggle }, [toggle])
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName
+      if (e.code === 'Space' && tag !== 'SELECT' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+        e.preventDefault()
+        toggleRef.current()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
 
   const scaleNotes = getScaleNotes(root, scale)
   const rootIdx = noteIndex(root)
@@ -57,86 +73,79 @@ export default function Explorer() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    <div className="flex h-full">
 
-      {/* Header */}
-      <div className="animate-fade-up">
-        <h1 className="text-2xl font-bold text-stone-100 mb-1">Scale Explorer</h1>
-        <p className="text-stone-500 text-sm">
-          Select a root note and scale to see all positions on the neck.
-        </p>
-      </div>
+      {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
+      <aside className="w-52 shrink-0 border-r border-stone-800 bg-stone-950/40 flex flex-col gap-6 px-4 py-6 overflow-y-auto">
 
-      {/* Controls — all groups consolidated */}
-      <div className="space-y-4 animate-fade-up">
-        {/* Row 1: Root · Scale · Labels */}
-        <div className="flex flex-wrap gap-x-8 gap-y-4 items-end">
-          <div className="space-y-2">
-            <label className="text-xs uppercase tracking-widest text-stone-500 font-semibold">Root Note</label>
-            <div className="flex flex-wrap gap-2">
-              {CHROMATIC_NOTES.map((note) => (
-                <button
-                  key={note}
-                  onClick={() => setRoot(note)}
-                  className={`w-10 h-10 rounded-lg text-sm font-semibold font-mono transition-all duration-150 border
-                    ${root === note
-                      ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/20 shadow-md'
-                      : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
-                    }`}
-                >
-                  {note}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs uppercase tracking-widest text-stone-500 font-semibold">Scale</label>
-            <select
-              value={scaleIdx}
-              onChange={(e) => setScaleIdx(Number(e.target.value))}
-              className="bg-stone-800 border border-stone-700 text-stone-200 rounded-lg px-3 py-2
-                text-sm focus:outline-none focus:border-stone-500 focus:ring-1 focus:ring-stone-500/40
-                cursor-pointer min-w-52 transition-colors duration-150"
-            >
-              {SCALES.map((s, i) => (
-                <option key={i} value={i}>{s.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs uppercase tracking-widest text-stone-500 font-semibold">Labels</label>
-            <div className="flex rounded-lg overflow-hidden border border-stone-700 text-sm font-medium">
-              {(['Notes', 'Degrees'] as const).map((opt, i) => (
-                <button
-                  key={opt}
-                  onClick={() => setShowDegrees(i === 1)}
-                  className={`px-3 py-2 transition-colors duration-150 ${
-                    showDegrees === (i === 1)
-                      ? 'bg-rose-500 text-white'
-                      : 'bg-stone-800 text-stone-400 hover:text-stone-200'
+        {/* Root */}
+        <div className="space-y-2">
+          <label className="text-[11px] font-medium text-stone-400">Root</label>
+          <div className="grid grid-cols-4 gap-1">
+            {CHROMATIC_NOTES.map((note) => (
+              <button
+                key={note}
+                onClick={() => setRoot(note)}
+                className={`py-1.5 rounded text-xs font-mono font-semibold transition-all duration-150
+                  ${root === note
+                    ? 'bg-rose-500 text-white shadow-sm shadow-rose-500/30'
+                    : 'bg-stone-800 text-stone-400 hover:bg-stone-700 hover:text-stone-200'
                   }`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
+              >
+                {note}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Row 2: Position */}
+        {/* Scale */}
         <div className="space-y-2">
-          <label className="text-xs uppercase tracking-widest text-stone-500 font-semibold">Position</label>
-          <div className="flex gap-2 flex-wrap">
+          <label className="text-[11px] font-medium text-stone-400">Scale</label>
+          <select
+            value={scaleIdx}
+            onChange={(e) => setScaleIdx(Number(e.target.value))}
+            className="w-full bg-stone-800 border border-stone-700 text-stone-200 rounded-lg px-3 py-2
+              text-sm focus:outline-none focus:border-stone-500 focus:ring-1 focus:ring-stone-500/40
+              cursor-pointer transition-colors duration-150"
+          >
+            {SCALES.map((s, i) => (
+              <option key={i} value={i}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Labels */}
+        <div className="space-y-2">
+          <label className="text-[11px] font-medium text-stone-400">Labels</label>
+          <div className="flex rounded-lg overflow-hidden border border-stone-700 text-xs font-medium">
+            {(['Notes', 'Degrees'] as const).map((opt, i) => (
+              <button
+                key={opt}
+                onClick={() => setShowDegrees(i === 1)}
+                className={`flex-1 py-2 transition-colors duration-150
+                  ${showDegrees === (i === 1)
+                    ? 'bg-rose-500 text-white'
+                    : 'bg-stone-800 text-stone-400 hover:text-stone-200'
+                  }`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Position */}
+        <div className="space-y-2">
+          <label className="text-[11px] font-medium text-stone-400">Position</label>
+          <div className="grid grid-cols-3 gap-1">
             {POSITIONS.map((pos, i) => (
               <button
                 key={pos.label}
                 onClick={() => setPositionIdx(i)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 border
+                className={`py-1.5 rounded text-xs font-medium transition-all duration-150
                   ${positionIdx === i
-                    ? 'bg-rose-500 text-white border-rose-400'
-                    : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
+                    ? 'bg-rose-500 text-white'
+                    : 'bg-stone-800 text-stone-400 hover:bg-stone-700 hover:text-stone-200'
                   }`}
               >
                 {pos.label}
@@ -144,77 +153,117 @@ export default function Explorer() {
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Backing track */}
-      <div className="animate-fade-up">
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Backing track */}
         <button
           onClick={toggle}
-          className={`flex items-center gap-2.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 border
+          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 border
             ${isPlaying
-              ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/20 shadow-md'
+              ? 'bg-rose-500 text-white border-rose-400 shadow-md shadow-rose-500/20'
               : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
             }`}
         >
-          <span className="text-base leading-none">{isPlaying ? '■' : '▶'}</span>
-          <span>{isPlaying ? 'Stop' : 'Play'} Backing Track</span>
-          <span className={`text-xs font-mono ${isPlaying ? 'text-rose-200' : 'text-stone-600'}`}>
-            {bpm} BPM
+          {/* Icon — equalizer bars when playing, play arrow when stopped */}
+          {isPlaying ? (
+            <span
+              className="flex items-end gap-[2px] h-3.5 shrink-0"
+              style={{ '--beat-dur': `${Math.round(60000 / bpm)}ms` } as React.CSSProperties}
+            >
+              <span className="block w-[3px] h-3.5 bg-current rounded-[1px] animate-bar-bounce origin-bottom" style={{ animationDelay: '0ms' }} />
+              <span className="block w-[3px] h-3.5 bg-current rounded-[1px] animate-bar-bounce origin-bottom" style={{ animationDelay: `${Math.round(60000 / bpm / 4)}ms` }} />
+              <span className="block w-[3px] h-3.5 bg-current rounded-[1px] animate-bar-bounce origin-bottom" style={{ animationDelay: `${Math.round(60000 / bpm / 8)}ms` }} />
+            </span>
+          ) : (
+            <span className="text-[11px] leading-none shrink-0">▶</span>
+          )}
+
+          <span className="flex-1 text-left">{isPlaying ? 'Stop' : 'Backing Track'}</span>
+
+          <span className={`text-[11px] font-mono shrink-0 ${isPlaying ? 'text-rose-200/80' : 'text-stone-600'}`}>
+            {bpm}<span className="opacity-60 text-[9px] ml-px">bpm</span>
           </span>
         </button>
-      </div>
 
-      {/* Fretboard — the hero */}
-      <Fretboard markers={markers} />
+        {/* Beat counter — 4 dots, each fires on its beat (1-2-3-4) */}
+        <div className={`flex justify-center items-center gap-2.5 h-3 transition-opacity duration-300 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}>
+          {[0, 1, 2, 3].map((i) => {
+            const beatMs = Math.round(60000 / bpm)
+            return (
+              <span
+                key={i}
+                className="w-1.5 h-1.5 rounded-full bg-rose-300/70"
+                style={{
+                  animation: isPlaying
+                    ? `beatDot ${beatMs * 4}ms linear ${i * beatMs}ms infinite`
+                    : 'none',
+                }}
+              />
+            )
+          })}
+        </div>
 
-      {/* Legend + note chips — tight grouping below the neck */}
-      <div className="flex flex-wrap gap-x-10 gap-y-4 items-start">
-        <div className="flex items-center gap-5 text-sm text-stone-400 flex-wrap">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full bg-stone-100 ring-1 ring-stone-400/40 shadow-sm" />
-            <span>Root ({root})</span>
+      </aside>
+
+      {/* ── Main content ─────────────────────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 overflow-auto px-6 py-6 space-y-6">
+
+        <div>
+          <h1 className="text-2xl font-bold text-stone-100">{root} <span className="font-normal text-stone-400">{scale.name}</span></h1>
+        </div>
+
+        <Fretboard markers={markers} />
+
+        {/* Legend + note chips */}
+        <div className="flex flex-wrap gap-x-10 gap-y-4 items-start">
+          <div className="flex items-center gap-5 text-sm text-stone-400 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-stone-100 ring-1 ring-stone-400/40 shadow-sm" />
+              <span>Root</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-violet-300 ring-1 ring-violet-200/40" />
+              <span>Chord tone</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded-full bg-rose-300 ring-1 ring-rose-200/40" />
+              <span>Scale tone</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full bg-violet-300 ring-1 ring-violet-200/40" />
-            <span>Chord tone</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-full bg-rose-300 ring-1 ring-rose-200/40" />
-            <span>Scale tone</span>
+
+          <div className="space-y-1.5">
+            <div className="flex flex-wrap gap-1.5">
+              {[...scaleNotes].map((note) => (
+                <span
+                  key={note}
+                  className={`px-2 py-0.5 rounded text-xs font-mono font-semibold
+                    ${note === root
+                      ? 'bg-stone-200/15 text-stone-200 ring-1 ring-stone-400/40'
+                      : chordToneNotes.has(note)
+                        ? 'bg-violet-300/15 text-violet-300 ring-1 ring-violet-300/30'
+                        : 'bg-stone-700 text-stone-400 ring-1 ring-stone-600'
+                    }`}
+                >
+                  {note}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <div className="text-xs text-stone-600 font-medium tracking-wide">{root} {scale.name}</div>
+        {/* Scale info */}
+        <div className="bg-stone-800/60 border border-stone-700/60 rounded-xl px-5 py-4 space-y-2">
+          <p className="text-stone-300 text-sm leading-relaxed">{scale.description}</p>
           <div className="flex flex-wrap gap-1.5">
-            {[...scaleNotes].map((note) => (
-              <span
-                key={note}
-                className={`px-2 py-0.5 rounded text-xs font-mono font-semibold
-                  ${note === root
-                    ? 'bg-stone-200/15 text-stone-200 ring-1 ring-stone-400/40'
-                    : chordToneNotes.has(note)
-                      ? 'bg-violet-300/15 text-violet-300 ring-1 ring-violet-300/30'
-                      : 'bg-stone-700 text-stone-400 ring-1 ring-stone-600'
-                  }`}
-              >
-                {note}
-              </span>
+            {scale.genres.map(g => (
+              <span key={g} className={`px-2 py-0.5 rounded text-xs font-medium ${genreColorClass(g)}`}>{g}</span>
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Scale info — supplementary context below the fretboard */}
-      <div className="bg-stone-800/60 border border-stone-700/60 rounded-xl px-5 py-4 space-y-2">
-        <p className="text-stone-300 text-sm leading-relaxed">{scale.description}</p>
-        <div className="flex flex-wrap gap-1.5">
-          {scale.genres.map(g => (
-            <span key={g} className="px-2 py-0.5 rounded text-xs font-medium bg-stone-700 text-stone-400">{g}</span>
-          ))}
-        </div>
       </div>
-
     </div>
   )
 }
