@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Metric-matched fallback for Space Grotesk — minimises layout shift while the
+   Google Font loads. Overrides approximate Space Grotesk's x-height and metrics
+   so the fallback renders at near-identical size. */
+@font-face {
+  font-family: 'Space Grotesk Fallback';
+  src: local('Arial');
+  size-adjust: 103%;
+  ascent-override: 88%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+}
+
 /* beatDot is used via inline animation style (dynamic duration/delay per dot),
    so it must live here rather than in tailwind.config keyframes — Tailwind's
    JIT won't emit a keyframe that isn't referenced by a scanned class name. */
@@ -19,6 +31,7 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-kerning: normal;
   }
 
   /* Warm, tinted scrollbars */

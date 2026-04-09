@@ -201,7 +201,7 @@ export default function Intervals() {
       {/* Controls */}
       <div className="flex flex-wrap gap-6 items-end animate-fade-up">
         <div className="space-y-2">
-          <label className="text-[11px] font-medium text-stone-400">Interval</label>
+          <label className="text-[11px] font-medium text-stone-400 tracking-wide">Interval</label>
           <div className="flex flex-wrap gap-2">
             {INTERVALS.map((iv, i) => (
               <div key={iv.label} className="relative group/iv">
@@ -224,7 +224,7 @@ export default function Intervals() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-[11px] font-medium text-stone-400">Mode</label>
+          <label className="text-[11px] font-medium text-stone-400 tracking-wide">Mode</label>
           <div className="flex rounded-lg overflow-hidden border border-stone-700 text-sm font-medium">
             {(['Study', 'Quiz'] as const).map((mode) => (
               <button
@@ -346,7 +346,7 @@ export default function Intervals() {
           <span className="text-stone-100 font-semibold">{interval.name}</span>
           <span className="text-stone-500 text-xs">{interval.semitones} semitone{interval.semitones !== 1 ? 's' : ''}</span>
         </div>
-        <p className="text-stone-300 text-sm leading-relaxed">{interval.description}</p>
+        <p className="text-stone-300 text-[0.9375rem] leading-relaxed">{interval.description}</p>
         <div className="flex flex-wrap gap-1.5">
           {interval.usedIn.map(u => (
             <span key={u} className="px-2 py-0.5 rounded text-xs font-medium bg-stone-700 text-stone-300">{u}</span>

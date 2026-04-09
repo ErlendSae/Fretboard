@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import Fretboard, { type FretMarker } from '../components/Fretboard'
-import { CHROMATIC_NOTES, type NoteName, NUM_STRINGS, NUM_FRETS, fretToNote, noteIndex } from '../utils/notes'
+import RootPicker from '../components/RootPicker'
+import { type NoteName, NUM_STRINGS, NUM_FRETS, fretToNote, noteIndex } from '../utils/notes'
 import { SCALES } from '../utils/scales'
 import { getDiatonicChords, isMinorTonality, PROGRESSION_PRESETS, type DiatonicChord, type ChordQuality } from '../utils/chords'
 import { playNote } from '../utils/audio'
@@ -144,7 +145,7 @@ export default function Progressions() {
       <div className="animate-fade-up mb-5">
         <h1 className="text-2xl font-bold text-stone-100">
           Chord Progressions{' '}
-          <span className="font-normal text-stone-400">{root} {scale.name}</span>
+          <span className="font-normal text-rose-400">{root}</span><span className="font-normal text-stone-400"> {scale.name}</span>
         </h1>
         <p className="text-stone-500 text-sm mt-1">
           Every scale produces 7 chords — one built on each note. These always fit together.
@@ -154,26 +155,15 @@ export default function Progressions() {
       {/* Controls — generous gap before the hero fretboard area */}
       <div className="flex flex-wrap gap-6 items-end animate-fade-up mb-10">
         <div className="space-y-2">
-          <label className="text-[11px] font-medium text-stone-400">Root</label>
-          <div className="flex flex-wrap gap-2">
-            {CHROMATIC_NOTES.map((note) => (
-              <button
-                key={note}
-                onClick={() => { setRoot(note); setSelectedDegree(0) }}
-                className={`w-10 h-10 rounded-lg text-sm font-semibold font-mono transition-all duration-150 border
-                  ${root === note
-                    ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/20 shadow-md'
-                    : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
-                  }`}
-              >
-                {note}
-              </button>
-            ))}
-          </div>
+          <label className="text-[11px] font-medium text-stone-400 tracking-wide">Root</label>
+          <RootPicker
+            value={root}
+            onChange={(note) => { setRoot(note); setSelectedDegree(0) }}
+          />
         </div>
 
         <div className="space-y-2">
-          <label className="text-[11px] font-medium text-stone-400">Scale</label>
+          <label className="text-[11px] font-medium text-stone-400 tracking-wide">Scale</label>
           <select
             value={scaleIdx}
             onChange={(e) => {
@@ -228,7 +218,7 @@ export default function Progressions() {
           {/* Educational content — lives below the fretboard, fills the left column */}
           <div className="mt-6 space-y-3 border-t border-stone-800 pt-6">
             <p className="text-[11px] font-medium text-stone-500">How diatonic chords work</p>
-            <div className="space-y-2 text-stone-500 text-sm leading-relaxed">
+            <div className="space-y-2 text-stone-500 text-[0.9375rem] leading-relaxed">
               <p>
                 Stack the 1st, 3rd, and 5th scale notes above any root — that's a triad.
                 Do it on all 7 notes and you get the <span className="text-stone-400">diatonic chord family</span>.
@@ -254,7 +244,7 @@ export default function Progressions() {
 
             {/* Chord family */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-medium text-stone-400">Chords in key</label>
+              <label className="text-[11px] font-medium text-stone-400 tracking-wide">Chords in key</label>
               <div className="space-y-1">
                 {chords.map((chord) => {
                   const isActive = selectedDegree === chord.degree
@@ -292,7 +282,7 @@ export default function Progressions() {
             {/* Progressions */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-medium text-stone-400">Progressions</label>
+                <label className="text-[11px] font-medium text-stone-400 tracking-wide">Progressions</label>
                 {activePreset !== null && (
                   <button
                     onClick={isPlaying ? stopPlayback : startPlayback}

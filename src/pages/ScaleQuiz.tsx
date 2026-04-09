@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import Fretboard, { type FretMarker } from '../components/Fretboard'
+import RootPicker from '../components/RootPicker'
 import {
-  CHROMATIC_NOTES, type NoteName,
+  type NoteName,
   NUM_STRINGS, NUM_FRETS,
   fretToNote,
 } from '../utils/notes'
@@ -59,7 +60,7 @@ export default function ScaleQuiz() {
     setPhase('revealed')
     setCanUndo(true)
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
-    undoTimerRef.current = setTimeout(() => setCanUndo(false), 1500)
+    undoTimerRef.current = setTimeout(() => setCanUndo(false), 4000)
   }, [target, scaleNotes])
 
   const handleUndo = useCallback(() => {
@@ -135,25 +136,11 @@ export default function ScaleQuiz() {
       {/* Key + Scale controls */}
       <div className="flex flex-wrap gap-6 items-end animate-fade-up">
         <div className="space-y-2">
-          <label className="text-[11px] font-medium text-stone-400">Key</label>
-          <div className="flex flex-wrap gap-2">
-            {CHROMATIC_NOTES.map((note) => (
-              <button
-                key={note}
-                onClick={() => setRoot(note)}
-                className={`w-10 h-10 rounded-lg text-sm font-semibold font-mono transition-all duration-150 border
-                  ${root === note
-                    ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/20 shadow-md'
-                    : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
-                  }`}
-              >
-                {note}
-              </button>
-            ))}
-          </div>
+          <label className="text-[11px] font-medium text-stone-400 tracking-wide">Key</label>
+          <RootPicker value={root} onChange={setRoot} />
         </div>
         <div className="space-y-2">
-          <label className="text-[11px] font-medium text-stone-400">Scale</label>
+          <label className="text-[11px] font-medium text-stone-400 tracking-wide">Scale</label>
           <select
             value={scaleIdx}
             onChange={(e) => setScaleIdx(Number(e.target.value))}
@@ -205,8 +192,8 @@ export default function ScaleQuiz() {
           <div className="flex flex-col items-center gap-5 animate-fade-up">
             <p className="text-xs text-stone-400 font-medium">Is this note in the scale?</p>
             <div className="text-center">
-              <span className="text-4xl font-black text-stone-100 font-mono">{target.note}</span>
-              <span className="text-stone-500 text-lg ml-3">in {root} {scale.name}?</span>
+              <span className="text-4xl font-black text-stone-100 font-mono tracking-tight">{target.note}</span>
+              <span className="text-stone-500 text-lg ml-3">in <span className="text-rose-400">{root}</span> {scale.name}?</span>
             </div>
             <div className="flex gap-3">
               <button
@@ -235,10 +222,10 @@ export default function ScaleQuiz() {
                 ? 'border-emerald-700/60 bg-emerald-900/30 text-emerald-300'
                 : 'border-red-800/60 bg-red-900/30 text-red-300'
             }`}>
-              <p className="text-lg font-bold">{wasCorrect ? 'Correct!' : 'Wrong'}</p>
+              <p className="text-lg font-bold">{wasCorrect ? 'Correct!' : 'Not this time!'}</p>
               <p className="text-sm">
                 <span className="font-mono font-bold text-stone-100">{target.note}</span>
-                {' '}{isInScale ? 'is' : 'is not'} in {root} {scale.name}.
+                {' '}{isInScale ? 'is' : 'is not'} in <span className="text-rose-400">{root}</span> {scale.name}.
                 {isInScale && target.note === root && ' (It\'s the root!)'}
               </p>
             </div>
@@ -264,39 +251,39 @@ export default function ScaleQuiz() {
         )}
       </div>
 
-      {/* Stats */}
-      <div className="flex items-center gap-3 text-sm flex-wrap animate-fade-up">
-        <div className="bg-stone-800 border border-stone-700 rounded-lg px-4 py-2 flex gap-4">
-          <span className="text-stone-400">
-            Attempts: <span className="text-stone-100 font-semibold">{stats.total}</span>
-          </span>
-          <span className="text-stone-400">
-            Correct: <span className="text-emerald-400 font-semibold">{stats.correct}</span>
-          </span>
-          {accuracy !== null && (
+      {/* Stats — shown only once there's data */}
+      {stats.total > 0 && (
+        <div className="flex items-center gap-3 text-sm flex-wrap animate-fade-up">
+          <div className="bg-stone-800 border border-stone-700 rounded-lg px-4 py-2 flex gap-4 tabular-nums">
             <span className="text-stone-400">
-              Accuracy:{' '}
-              <span className={`font-semibold ${
-                accuracy >= 80 ? 'text-emerald-400' : accuracy >= 50 ? 'text-yellow-400' : 'text-red-400'
-              }`}>
-                {accuracy}%
-              </span>
+              Attempts: <span className="text-stone-100 font-semibold">{stats.total}</span>
             </span>
-          )}
-        </div>
-        {stats.total > 0 && (
+            <span className="text-stone-400">
+              Correct: <span className="text-emerald-400 font-semibold">{stats.correct}</span>
+            </span>
+            {accuracy !== null && (
+              <span className="text-stone-400">
+                Accuracy:{' '}
+                <span className={`font-semibold ${
+                  accuracy >= 80 ? 'text-emerald-400' : accuracy >= 50 ? 'text-yellow-400' : 'text-red-400'
+                }`}>
+                  {accuracy}%
+                </span>
+              </span>
+            )}
+          </div>
           <button
             onClick={() => setStats({ total: 0, correct: 0 })}
             className="text-xs text-stone-600 hover:text-stone-400 transition-colors duration-150 px-2 py-1"
           >
             Reset
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Scale info — supplementary context at the bottom */}
       <div className="bg-stone-800/60 border border-stone-700/60 rounded-xl px-5 py-4 space-y-2">
-        <p className="text-stone-300 text-sm leading-relaxed">{scale.description}</p>
+        <p className="text-stone-300 text-[0.9375rem] leading-relaxed">{scale.description}</p>
         <div className="flex flex-wrap gap-1.5">
           {scale.genres.map(g => (
             <span key={g} className={`px-2 py-0.5 rounded text-xs font-medium ${genreColorClass(g)}`}>{g}</span>

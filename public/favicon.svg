@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <!-- Subtle radial gradient gives the marker a lit, round feel -->
+    <radialGradient id="dot" cx="38%" cy="32%" r="65%">
+      <stop offset="0%" stop-color="#fb7185"/>
+      <stop offset="100%" stop-color="#e11d48"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Outer background -->
+  <rect width="32" height="32" rx="6" fill="#0c0a09"/>
+
+  <!-- Fretboard neck (warm, very dark wood) -->
+  <rect x="4" y="4" width="24" height="25" rx="1.5" fill="#150e05"/>
+
+  <!-- Nut — the bone-coloured bar at the headstock end -->
+  <rect x="4" y="4" width="24" height="3" rx="1" fill="#6b6459"/>
+
+  <!-- Fret 1 -->
+  <rect x="4" y="17" width="24" height="1.5" rx="0.5" fill="#3d3733"/>
+
+  <!-- Fret 2 (partially visible at bottom) -->
+  <rect x="4" y="26" width="24" height="1.5" rx="0.5" fill="#332f2c"/>
+
+  <!-- 6 strings: low E (thick, left) → high e (thin, right) -->
+  <line x1="7"    y1="4" x2="7"    y2="29" stroke="#57534e" stroke-width="1.8"/>
+  <line x1="10.8" y1="4" x2="10.8" y2="29" stroke="#57534e" stroke-width="1.4"/>
+  <line x1="14.6" y1="4" x2="14.6" y2="29" stroke="#57534e" stroke-width="1.0"/>
+  <line x1="18.4" y1="4" x2="18.4" y2="29" stroke="#57534e" stroke-width="0.75"/>
+  <line x1="22.2" y1="4" x2="22.2" y2="29" stroke="#57534e" stroke-width="0.55"/>
+  <line x1="26"   y1="4" x2="26"   y2="29" stroke="#57534e" stroke-width="0.35"/>
+
+  <!-- Ambient glow around the marker -->
+  <circle cx="14.6" cy="12" r="6.5" fill="#f43f5e" opacity="0.2"/>
+
+  <!-- Rose note marker — centred on the D string, first fret position -->
+  <circle cx="14.6" cy="12" r="4.2" fill="url(#dot)"/>
+
+  <!-- White centre — mirrors the root-variant marker style in the app -->
+  <circle cx="14.6" cy="12" r="1.6" fill="#fafaf9" opacity="0.88"/>
+</svg>

@@ -49,7 +49,7 @@ function notePositions(note: NoteName, variant: FretMarker['variant']): FretMark
 }
 
 function distLabel(dist: number | null): string {
-  if (dist === null) return 'No pitch detected'
+  if (dist === null) return "Mic didn't catch it"
   if (dist === 0) return 'Correct!'
   if (dist === 1) return '1 semitone off'
   return `${dist} semitones off`
@@ -239,41 +239,6 @@ export default function Quiz() {
         </p>
       </div>
 
-      {/* Stats */}
-      <div className="flex items-center gap-3 text-sm flex-wrap animate-fade-up">
-        <div className="bg-stone-800 border border-stone-700 rounded-lg px-4 py-2 flex gap-4">
-          <span className="text-stone-400">
-            Attempts: <span className="text-stone-100 font-semibold">{stats.total}</span>
-          </span>
-          <span className="text-stone-400">
-            Correct:{' '}
-            <span className="text-emerald-400 font-semibold">{stats.correct}</span>
-          </span>
-          {accuracy !== null && (
-            <span className="text-stone-400">
-              Accuracy:{' '}
-              <span
-                className={`font-semibold ${
-                  accuracy >= 80 ? 'text-emerald-400'
-                  : accuracy >= 50 ? 'text-yellow-400'
-                  : 'text-red-400'
-                }`}
-              >
-                {accuracy}%
-              </span>
-            </span>
-          )}
-        </div>
-        {stats.total > 0 && (
-          <button
-            onClick={() => setStats({ total: 0, correct: 0 })}
-            className="text-xs text-stone-600 hover:text-stone-400 transition-colors duration-150 px-2 py-1"
-          >
-            Reset stats
-          </button>
-        )}
-      </div>
-
       {/* Main phase card */}
       <div className="bg-stone-800 border border-stone-700 rounded-2xl p-8 flex flex-col items-center gap-6 min-h-56">
 
@@ -300,7 +265,7 @@ export default function Quiz() {
         {phase === 'target' && (
           <div className="flex flex-col items-center gap-5 animate-fade-up">
             <p className="text-xs text-stone-400 font-medium">Find this note</p>
-            <div className="text-8xl font-black text-stone-100 leading-none tracking-tight font-mono">
+            <div className="text-8xl font-black text-stone-100 leading-none tracking-tighter font-mono">
               {target.note}
             </div>
             <div className="flex items-center gap-3 mt-1">
@@ -331,7 +296,7 @@ export default function Quiz() {
         {phase === 'listening' && (
           <div className="flex flex-col items-center gap-5 animate-fade-up">
             <p className="text-xs text-stone-400 font-medium">Listening for</p>
-            <div className="text-8xl font-black text-stone-600 leading-none tracking-tight font-mono">
+            <div className="text-8xl font-black text-stone-600 leading-none tracking-tighter font-mono">
               {target.note}
             </div>
             <div className="flex items-center gap-2 text-stone-500 text-sm -mt-1">
@@ -340,7 +305,7 @@ export default function Quiz() {
             </div>
             <div className="w-64 h-2 bg-stone-700 rounded-full overflow-hidden">
               <div
-                className="h-full bg-stone-300 rounded-full"
+                className="h-full bg-rose-400 rounded-full"
                 style={{ width: `${listenProgress * 100}%`, transition: 'none' }}
               />
             </div>
@@ -368,7 +333,7 @@ export default function Quiz() {
                 )}
                 {result.detectedNote === null && (
                   <p className="text-stone-500 text-xs">
-                    No pitch detected — check mic permissions or play louder.
+                    Try playing louder, or check that mic permission is granted.
                   </p>
                 )}
               </div>
@@ -425,6 +390,41 @@ export default function Quiz() {
             <p className="text-xs text-stone-600">Reference fretboard — find the note and play it</p>
           )}
           <Fretboard markers={resultMarkers} />
+        </div>
+      )}
+
+      {/* Stats — shown only once there's data */}
+      {stats.total > 0 && (
+        <div className="flex items-center gap-3 text-sm flex-wrap animate-fade-up">
+          <div className="bg-stone-800 border border-stone-700 rounded-lg px-4 py-2 flex gap-4 tabular-nums">
+            <span className="text-stone-400">
+              Attempts: <span className="text-stone-100 font-semibold">{stats.total}</span>
+            </span>
+            <span className="text-stone-400">
+              Correct:{' '}
+              <span className="text-emerald-400 font-semibold">{stats.correct}</span>
+            </span>
+            {accuracy !== null && (
+              <span className="text-stone-400">
+                Accuracy:{' '}
+                <span
+                  className={`font-semibold ${
+                    accuracy >= 80 ? 'text-emerald-400'
+                    : accuracy >= 50 ? 'text-yellow-400'
+                    : 'text-red-400'
+                  }`}
+                >
+                  {accuracy}%
+                </span>
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => setStats({ total: 0, correct: 0 })}
+            className="text-xs text-stone-600 hover:text-stone-400 transition-colors duration-150 px-2 py-1"
+          >
+            Reset
+          </button>
         </div>
       )}
     </div>

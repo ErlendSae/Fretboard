@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Fretboard, { type FretMarker } from '../components/Fretboard'
+import RootPicker from '../components/RootPicker'
 import { CHROMATIC_NOTES, type NoteName, NUM_STRINGS, NUM_FRETS, fretToNote, noteIndex } from '../utils/notes'
 import { SCALES, getScaleNotes } from '../utils/scales'
 import { genreColorClass } from '../utils/genreColors'
@@ -80,27 +81,13 @@ export default function Explorer() {
 
         {/* Root */}
         <div className="space-y-2">
-          <label className="text-[11px] font-medium text-stone-400">Root</label>
-          <div className="grid grid-cols-4 gap-1">
-            {CHROMATIC_NOTES.map((note) => (
-              <button
-                key={note}
-                onClick={() => setRoot(note)}
-                className={`py-1.5 rounded text-xs font-mono font-semibold transition-all duration-150
-                  ${root === note
-                    ? 'bg-rose-500 text-white shadow-sm shadow-rose-500/30'
-                    : 'bg-stone-800 text-stone-400 hover:bg-stone-700 hover:text-stone-200'
-                  }`}
-              >
-                {note}
-              </button>
-            ))}
-          </div>
+          <label className="text-[11px] font-medium text-stone-400 tracking-wide">Root</label>
+          <RootPicker value={root} onChange={setRoot} layout="grid" />
         </div>
 
         {/* Scale */}
         <div className="space-y-2">
-          <label className="text-[11px] font-medium text-stone-400">Scale</label>
+          <label className="text-[11px] font-medium text-stone-400 tracking-wide">Scale</label>
           <select
             value={scaleIdx}
             onChange={(e) => setScaleIdx(Number(e.target.value))}
@@ -116,7 +103,7 @@ export default function Explorer() {
 
         {/* Labels */}
         <div className="space-y-2">
-          <label className="text-[11px] font-medium text-stone-400">Labels</label>
+          <label className="text-[11px] font-medium text-stone-400 tracking-wide">Labels</label>
           <div className="flex rounded-lg overflow-hidden border border-stone-700 text-xs font-medium">
             {(['Notes', 'Degrees'] as const).map((opt, i) => (
               <button
@@ -136,7 +123,7 @@ export default function Explorer() {
 
         {/* Position */}
         <div className="space-y-2">
-          <label className="text-[11px] font-medium text-stone-400">Position</label>
+          <label className="text-[11px] font-medium text-stone-400 tracking-wide">Position</label>
           <div className="grid grid-cols-3 gap-1">
             {POSITIONS.map((pos, i) => (
               <button
@@ -154,55 +141,59 @@ export default function Explorer() {
           </div>
         </div>
 
-        {/* Spacer */}
-        <div className="flex-1" />
+        {/* Backing track — separated from settings controls with a border */}
+        <div className="border-t border-stone-800 pt-4 space-y-3">
+          <button
+            onClick={toggle}
+            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 border
+              ${isPlaying
+                ? 'bg-rose-500 text-white border-rose-400 shadow-md shadow-rose-500/20'
+                : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
+              }`}
+          >
+            {/* Icon — equalizer bars when playing, play arrow when stopped */}
+            {isPlaying ? (
+              <span
+                className="flex items-end gap-[2px] h-3.5 shrink-0"
+                style={{ '--beat-dur': `${Math.round(60000 / bpm)}ms` } as React.CSSProperties}
+              >
+                <span className="block w-[3px] h-3.5 bg-current rounded-[1px] animate-bar-bounce origin-bottom" style={{ animationDelay: '0ms' }} />
+                <span className="block w-[3px] h-3.5 bg-current rounded-[1px] animate-bar-bounce origin-bottom" style={{ animationDelay: `${Math.round(60000 / bpm / 4)}ms` }} />
+                <span className="block w-[3px] h-3.5 bg-current rounded-[1px] animate-bar-bounce origin-bottom" style={{ animationDelay: `${Math.round(60000 / bpm / 8)}ms` }} />
+              </span>
+            ) : (
+              <span className="text-[11px] leading-none shrink-0">▶</span>
+            )}
 
-        {/* Backing track */}
-        <button
-          onClick={toggle}
-          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 border
-            ${isPlaying
-              ? 'bg-rose-500 text-white border-rose-400 shadow-md shadow-rose-500/20'
-              : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
-            }`}
-        >
-          {/* Icon — equalizer bars when playing, play arrow when stopped */}
-          {isPlaying ? (
-            <span
-              className="flex items-end gap-[2px] h-3.5 shrink-0"
-              style={{ '--beat-dur': `${Math.round(60000 / bpm)}ms` } as React.CSSProperties}
-            >
-              <span className="block w-[3px] h-3.5 bg-current rounded-[1px] animate-bar-bounce origin-bottom" style={{ animationDelay: '0ms' }} />
-              <span className="block w-[3px] h-3.5 bg-current rounded-[1px] animate-bar-bounce origin-bottom" style={{ animationDelay: `${Math.round(60000 / bpm / 4)}ms` }} />
-              <span className="block w-[3px] h-3.5 bg-current rounded-[1px] animate-bar-bounce origin-bottom" style={{ animationDelay: `${Math.round(60000 / bpm / 8)}ms` }} />
+            <span className="flex-1 text-left">{isPlaying ? 'Stop' : 'Backing Track'}</span>
+
+            <span className={`text-[11px] font-mono shrink-0 ${isPlaying ? 'text-rose-200/80' : 'text-stone-600'}`}>
+              {bpm}<span className="opacity-60 text-[9px] ml-px">bpm</span>
             </span>
-          ) : (
-            <span className="text-[11px] leading-none shrink-0">▶</span>
+          </button>
+
+          {/* Spacebar hint — shown only when not playing so it doesn't compete with the beat dots */}
+          {!isPlaying && (
+            <p className="text-center text-xs text-stone-700">Space to play</p>
           )}
 
-          <span className="flex-1 text-left">{isPlaying ? 'Stop' : 'Backing Track'}</span>
-
-          <span className={`text-[11px] font-mono shrink-0 ${isPlaying ? 'text-rose-200/80' : 'text-stone-600'}`}>
-            {bpm}<span className="opacity-60 text-[9px] ml-px">bpm</span>
-          </span>
-        </button>
-
-        {/* Beat counter — 4 dots, each fires on its beat (1-2-3-4) */}
-        <div className={`flex justify-center items-center gap-2.5 h-3 transition-opacity duration-300 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}>
-          {[0, 1, 2, 3].map((i) => {
-            const beatMs = Math.round(60000 / bpm)
-            return (
-              <span
-                key={i}
-                className="w-1.5 h-1.5 rounded-full bg-rose-300/70"
-                style={{
-                  animation: isPlaying
-                    ? `beatDot ${beatMs * 4}ms linear ${i * beatMs}ms infinite`
-                    : 'none',
-                }}
-              />
-            )
-          })}
+          {/* Beat counter — 4 dots, each fires on its beat (1-2-3-4) */}
+          <div className={`flex justify-center items-center gap-2.5 h-3 transition-opacity duration-300 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}>
+            {[0, 1, 2, 3].map((i) => {
+              const beatMs = Math.round(60000 / bpm)
+              return (
+                <span
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full bg-rose-300/70"
+                  style={{
+                    animation: isPlaying
+                      ? `beatDot ${beatMs * 4}ms linear ${i * beatMs}ms infinite`
+                      : 'none',
+                  }}
+                />
+              )
+            })}
+          </div>
         </div>
 
       </aside>
@@ -211,7 +202,7 @@ export default function Explorer() {
       <div className="flex-1 min-w-0 overflow-auto px-6 py-6 space-y-6">
 
         <div>
-          <h1 className="text-2xl font-bold text-stone-100">{root} <span className="font-normal text-stone-400">{scale.name}</span></h1>
+          <h1 className="text-2xl font-bold"><span className="text-rose-400">{root}</span> <span className="font-normal text-stone-400">{scale.name}</span></h1>
         </div>
 
         <Fretboard markers={markers} />
@@ -243,7 +234,7 @@ export default function Explorer() {
                       ? 'bg-stone-200/15 text-stone-200 ring-1 ring-stone-400/40'
                       : chordToneNotes.has(note)
                         ? 'bg-violet-300/15 text-violet-300 ring-1 ring-violet-300/30'
-                        : 'bg-stone-700 text-stone-400 ring-1 ring-stone-600'
+                        : 'bg-rose-300/15 text-rose-300 ring-1 ring-rose-300/30'
                     }`}
                 >
                   {note}
@@ -255,7 +246,7 @@ export default function Explorer() {
 
         {/* Scale info */}
         <div className="bg-stone-800/60 border border-stone-700/60 rounded-xl px-5 py-4 space-y-2">
-          <p className="text-stone-300 text-sm leading-relaxed">{scale.description}</p>
+          <p className="text-stone-300 text-[0.9375rem] leading-relaxed">{scale.description}</p>
           <div className="flex flex-wrap gap-1.5">
             {scale.genres.map(g => (
               <span key={g} className={`px-2 py-0.5 rounded text-xs font-medium ${genreColorClass(g)}`}>{g}</span>
