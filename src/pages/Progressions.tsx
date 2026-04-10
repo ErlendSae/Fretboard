@@ -139,10 +139,10 @@ export default function Progressions() {
   const currentPreset = activePreset !== null ? presets[activePreset] : null
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
 
-      {/* Header — tight to controls, they're closely related */}
-      <div className="animate-fade-up mb-5">
+      {/* Header */}
+      <div className="animate-fade-up">
         <h1 className="text-2xl font-bold text-stone-100">
           Chord Progressions{' '}
           <span className="font-normal text-rose-400">{root}</span><span className="font-normal text-stone-400"> {scale.name}</span>
@@ -152,10 +152,10 @@ export default function Progressions() {
         </p>
       </div>
 
-      {/* Controls — generous gap before the hero fretboard area */}
-      <div className="flex flex-wrap gap-6 items-end animate-fade-up mb-10">
+      {/* Controls */}
+      <div className="flex flex-wrap gap-6 items-end animate-fade-up">
         <div className="space-y-2">
-          <label className="text-[11px] font-medium text-stone-400 tracking-wide">Root</label>
+          <span className="text-[11px] font-medium text-stone-400 tracking-wide">Root</span>
           <RootPicker
             value={root}
             onChange={(note) => { setRoot(note); setSelectedDegree(0) }}
@@ -163,8 +163,14 @@ export default function Progressions() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-[11px] font-medium text-stone-400 tracking-wide">Scale</label>
+          <label
+            htmlFor="progressions-scale"
+            className="text-[11px] font-medium text-stone-400 tracking-wide"
+          >
+            Scale
+          </label>
           <select
+            id="progressions-scale"
             value={scaleIdx}
             onChange={(e) => {
               setScaleIdx(Number(e.target.value))
@@ -172,8 +178,8 @@ export default function Progressions() {
               setActivePreset(null)
             }}
             className="bg-stone-800 border border-stone-700 text-stone-200 rounded-lg px-3 py-2
-              text-sm focus:outline-none focus:border-stone-500 focus:ring-1 focus:ring-stone-500/40
-              cursor-pointer min-w-52 transition-colors duration-150"
+              text-sm focus-visible:outline-none focus-visible:border-stone-500 focus-visible:ring-1
+              focus-visible:ring-stone-500/40 cursor-pointer min-w-52 transition-colors duration-150"
           >
             {SCALES.map((s, i) => s.intervals.length === 7 && (
               <option key={i} value={i}>{s.name}</option>
@@ -183,7 +189,7 @@ export default function Progressions() {
       </div>
 
       {/* ── Two-column main area ───────────────────────────────────────────── */}
-      <div className="flex flex-col lg:flex-row gap-8 items-start animate-fade-up">
+      <div className="flex flex-col md:flex-row gap-8 items-start animate-fade-up">
 
         {/* Left: Fretboard + educational content */}
         <div className="flex-1 min-w-0 space-y-4">
@@ -240,7 +246,7 @@ export default function Progressions() {
 
         {/* Right: Compact control panel */}
         {chords && (
-          <div className="w-full lg:w-52 shrink-0 space-y-5">
+          <div className="w-full md:w-52 shrink-0 max-w-xs mx-auto md:mx-0 space-y-5">
 
             {/* Chord family */}
             <div className="space-y-1.5">
@@ -286,13 +292,17 @@ export default function Progressions() {
                 {activePreset !== null && (
                   <button
                     onClick={isPlaying ? stopPlayback : startPlayback}
-                    className={`text-xs font-medium px-2 py-1 rounded-md border transition-all duration-150
+                    aria-label={isPlaying ? 'Stop progression playback' : 'Play progression'}
+                    aria-pressed={isPlaying}
+                    className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all duration-150
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500
+                      focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950
                       ${isPlaying
                         ? 'bg-rose-500 text-white border-rose-400'
                         : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
                       }`}
                   >
-                    {isPlaying ? '◼ Stop' : '▶ Play'}
+                    <span aria-hidden="true">{isPlaying ? '◼ Stop' : '▶ Play'}</span>
                   </button>
                 )}
               </div>

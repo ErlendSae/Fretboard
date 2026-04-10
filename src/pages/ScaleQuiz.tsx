@@ -31,8 +31,10 @@ export default function ScaleQuiz() {
   const [wasCorrect, setWasCorrect] = useState(false)
   const [stats, setStats] = useState({ total: 0, correct: 0 })
   const [canUndo, setCanUndo] = useState(false)
+  const [showSummary, setShowSummary] = useState(false)
   const undoStatsRef = useRef<{ total: number; correct: number } | null>(null)
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const keepGoingRef = useRef<HTMLButtonElement>(null)
 
   const scale = SCALES[scaleIdx]!
   const scaleNotes = getScaleNotes(root, scale)
@@ -55,12 +57,14 @@ export default function ScaleQuiz() {
     setWasCorrect(correct)
     setStats(s => {
       undoStatsRef.current = s
-      return { total: s.total + 1, correct: s.correct + (correct ? 1 : 0) }
+      const newTotal = s.total + 1
+      if (newTotal % 10 === 0) setShowSummary(true)
+      return { total: newTotal, correct: s.correct + (correct ? 1 : 0) }
     })
     setPhase('revealed')
     setCanUndo(true)
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current)
-    undoTimerRef.current = setTimeout(() => setCanUndo(false), 4000)
+    undoTimerRef.current = setTimeout(() => setCanUndo(false), 8000)
   }, [target, scaleNotes])
 
   const handleUndo = useCallback(() => {
@@ -119,11 +123,13 @@ export default function ScaleQuiz() {
     return list
   })()
 
+  useEffect(() => { if (showSummary) keepGoingRef.current?.focus() }, [showSummary])
+
   const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : null
   const isInScale = scaleNotes.has(target.note)
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
       {/* Header */}
       <div className="animate-fade-up">
@@ -134,7 +140,7 @@ export default function ScaleQuiz() {
       </div>
 
       {/* Key + Scale controls */}
-      <div className="flex flex-wrap gap-6 items-end animate-fade-up">
+      <div className="flex flex-wrap gap-6 items-start sm:items-end animate-fade-up">
         <div className="space-y-2">
           <label className="text-[11px] font-medium text-stone-400 tracking-wide">Key</label>
           <RootPicker value={root} onChange={setRoot} />
@@ -211,7 +217,7 @@ export default function ScaleQuiz() {
                 No
               </button>
             </div>
-            <p className="text-xs text-stone-600">Y = Yes · N = No</p>
+            <p className="text-xs text-stone-500">Y — yes · N — no</p>
           </div>
         )}
 
@@ -231,12 +237,18 @@ export default function ScaleQuiz() {
             </div>
             <div className="flex items-center gap-3">
               {canUndo && (
-                <button
-                  onClick={handleUndo}
-                  className="animate-fade-up text-sm text-stone-500 hover:text-stone-300 transition-colors duration-150 px-3 py-2 rounded-lg border border-stone-700 hover:border-stone-500"
-                >
-                  Undo
-                </button>
+                <div className="flex flex-col items-center gap-1">
+                  <button
+                    onClick={handleUndo}
+                    className="animate-fade-up text-sm text-stone-500 hover:text-stone-300 transition-colors duration-150 px-3 py-2 rounded-lg border border-stone-700 hover:border-stone-500"
+                  >
+                    Undo
+                  </button>
+                  <div className="w-20 h-0.5 bg-stone-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-stone-500 rounded-full" style={{ animation: 'undoShrink 8s linear forwards' }} />
+                  </div>
+                  <style>{`@keyframes undoShrink { from { width: 100% } to { width: 0% } }`}</style>
+                </div>
               )}
               <button
                 onClick={nextQuestion}
@@ -246,7 +258,7 @@ export default function ScaleQuiz() {
                 Next note
               </button>
             </div>
-            <p className="text-xs text-stone-600">Space / Enter for next</p>
+            <p className="text-xs text-stone-500">Space · Enter — next note</p>
           </div>
         )}
       </div>
@@ -254,7 +266,7 @@ export default function ScaleQuiz() {
       {/* Stats — shown only once there's data */}
       {stats.total > 0 && (
         <div className="flex items-center gap-3 text-sm flex-wrap animate-fade-up">
-          <div className="bg-stone-800 border border-stone-700 rounded-lg px-4 py-2 flex gap-4 tabular-nums">
+          <div className="bg-stone-800 border border-stone-700 rounded-lg px-4 py-2 flex flex-wrap gap-x-4 gap-y-1 tabular-nums">
             <span className="text-stone-400">
               Attempts: <span className="text-stone-100 font-semibold">{stats.total}</span>
             </span>
@@ -290,6 +302,38 @@ export default function ScaleQuiz() {
           ))}
         </div>
       </div>
+
+      {/* Session summary modal */}
+      {showSummary && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/80 backdrop-blur-sm"
+          onClick={() => setShowSummary(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowSummary(false) }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="summary-title"
+            className="bg-stone-800 border border-stone-700 rounded-2xl p-8 flex flex-col items-center gap-5 w-80 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p id="summary-title" className="text-[11px] font-medium text-stone-400 tracking-wide">Session checkpoint</p>
+            <p className="text-5xl font-black text-stone-100 tabular-nums">{accuracy}%</p>
+            <div className="w-full bg-stone-700 rounded-lg px-4 py-3 flex justify-around tabular-nums text-sm">
+              <span className="text-stone-400">Correct: <span className="text-emerald-400 font-semibold">{stats.correct}</span></span>
+              <span className="text-stone-400">Total: <span className="text-stone-100 font-semibold">{stats.total}</span></span>
+            </div>
+            <button
+              ref={keepGoingRef}
+              onClick={() => setShowSummary(false)}
+              className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
+                font-bold px-6 py-2.5 rounded-xl transition-all duration-150 shadow-lg shadow-rose-500/20"
+            >
+              Keep going
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   )

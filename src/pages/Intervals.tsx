@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Fretboard, { type FretMarker } from '../components/Fretboard'
 import {
   CHROMATIC_NOTES, type NoteName,
@@ -100,6 +100,7 @@ function allPositionsOf(note: NoteName): Array<{ stringIndex: number; fret: numb
 export default function Intervals() {
   const [intervalIdx, setIntervalIdx] = useState(4) // default: Perfect 5th
   const [quizMode, setQuizMode] = useState(false)
+  const intervalButtonRefs = useRef<(HTMLButtonElement | null)[]>([])
   const [rootPos, setRootPos] = useState<RootPos | null>(null)
   const [guessResults, setGuessResults] = useState<Map<string, GuessResult>>(new Map())
   const [revealed, setRevealed] = useState(false)
@@ -188,7 +189,7 @@ export default function Intervals() {
   const totalTargets = targetPositions.length
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
       {/* Header */}
       <div className="animate-fade-up">
@@ -201,44 +202,88 @@ export default function Intervals() {
       {/* Controls */}
       <div className="flex flex-wrap gap-6 items-end animate-fade-up">
         <div className="space-y-2">
-          <label className="text-[11px] font-medium text-stone-400 tracking-wide">Interval</label>
-          <div className="flex flex-wrap gap-2">
-            {INTERVALS.map((iv, i) => (
-              <div key={iv.label} className="relative group/iv">
-                <button
-                  onClick={() => setIntervalIdx(i)}
-                  className={`px-3 py-2 rounded-lg text-sm font-semibold font-mono transition-all duration-150 border
-                    ${intervalIdx === i
-                      ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/20 shadow-md'
-                      : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
-                    }`}
-                >
-                  {iv.label}
-                </button>
-                <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs bg-stone-900 text-stone-200 border border-stone-700 shadow-lg opacity-0 group-hover/iv:opacity-100 transition-opacity duration-150 z-20">
-                  {iv.name}
-                </span>
-              </div>
-            ))}
+          <span
+            id="interval-group"
+            className="text-[11px] font-medium text-stone-400 tracking-wide"
+          >
+            Interval
+          </span>
+          <div
+            role="radiogroup"
+            aria-labelledby="interval-group"
+            className="flex flex-wrap gap-1.5 sm:gap-2"
+          >
+            {INTERVALS.map((iv, i) => {
+              const isActive = intervalIdx === i
+              return (
+                <div key={iv.label} className="relative group/iv">
+                  <button
+                    role="radio"
+                    aria-checked={isActive}
+                    aria-label={iv.name}
+                    ref={(el) => { intervalButtonRefs.current[i] = el }}
+                    onClick={() => setIntervalIdx(i)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                        e.preventDefault()
+                        intervalButtonRefs.current[(i + 1) % INTERVALS.length]?.focus()
+                      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                        e.preventDefault()
+                        intervalButtonRefs.current[(i - 1 + INTERVALS.length) % INTERVALS.length]?.focus()
+                      }
+                    }}
+                    className={`px-3 py-2 rounded-lg text-sm font-semibold font-mono transition-all duration-150 border min-w-[2.75rem]
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500
+                      focus-visible:ring-offset-2 focus-visible:ring-offset-stone-900
+                      ${isActive
+                        ? 'bg-rose-500 text-white border-rose-400 shadow-rose-500/20 shadow-md'
+                        : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
+                      }`}
+                  >
+                    {iv.label}
+                  </button>
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded px-2 py-1 text-xs bg-stone-900 text-stone-200 border border-stone-700 shadow-lg opacity-0 group-hover/iv:opacity-100 transition-opacity duration-150 z-20"
+                  >
+                    {iv.name}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </div>
 
         <div className="space-y-2">
-          <label className="text-[11px] font-medium text-stone-400 tracking-wide">Mode</label>
-          <div className="flex rounded-lg overflow-hidden border border-stone-700 text-sm font-medium">
-            {(['Study', 'Quiz'] as const).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setQuizMode(mode === 'Quiz')}
-                className={`px-4 py-2 transition-colors duration-150 ${
-                  quizMode === (mode === 'Quiz')
-                    ? 'bg-rose-500 text-white'
-                    : 'bg-stone-800 text-stone-400 hover:text-stone-200'
-                }`}
-              >
-                {mode}
-              </button>
-            ))}
+          <span
+            id="mode-group"
+            className="text-[11px] font-medium text-stone-400 tracking-wide"
+          >
+            Mode
+          </span>
+          <div
+            role="group"
+            aria-labelledby="mode-group"
+            className="flex rounded-lg overflow-hidden border border-stone-700 text-sm font-medium"
+          >
+            {(['Study', 'Quiz'] as const).map((mode) => {
+              const isActive = quizMode === (mode === 'Quiz')
+              return (
+                <button
+                  key={mode}
+                  aria-pressed={isActive}
+                  onClick={() => setQuizMode(mode === 'Quiz')}
+                  className={`px-4 py-2 transition-colors duration-150
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose-500
+                    ${isActive
+                      ? 'bg-rose-500 text-white'
+                      : 'bg-stone-800 text-stone-400 hover:text-stone-200'
+                    }`}
+                >
+                  {mode}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -324,7 +369,9 @@ export default function Intervals() {
             <button
               onClick={() => setRevealed(true)}
               className="bg-stone-700 hover:bg-stone-600 text-stone-300 text-sm font-medium
-                px-4 py-2 rounded-lg border border-stone-600 transition-all duration-150"
+                px-4 py-2 rounded-lg border border-stone-600 transition-all duration-150
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400
+                focus-visible:ring-offset-2 focus-visible:ring-offset-stone-900"
             >
               Reveal all
             </button>
@@ -333,7 +380,9 @@ export default function Intervals() {
           )}
           <button
             onClick={() => { setRootPos(null); setGuessResults(new Map()); setRevealed(false) }}
-            className="text-xs text-stone-600 hover:text-stone-400 transition-colors duration-150 px-2 py-1"
+            className="text-xs text-stone-600 hover:text-stone-400 transition-colors duration-150 px-2 py-1
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-500
+              focus-visible:ring-offset-2 focus-visible:ring-offset-stone-900 rounded"
           >
             Reset
           </button>

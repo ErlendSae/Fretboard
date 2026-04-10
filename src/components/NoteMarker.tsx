@@ -30,17 +30,33 @@ const VARIANT_CLASSES: Record<MarkerVariant, string> = {
 }
 
 export default function NoteMarker({ note, label, variant, onClick, size = 28 }: NoteMarkerProps) {
+  const display = label ?? note
+  // Accessible label: include both degree label and note name if showing degrees
+  const accessibleLabel = label ? `${label} (${note})` : note
+  const baseClasses = `rounded-full flex items-center justify-center transition-transform duration-100 font-mono ${VARIANT_CLASSES[variant]}`
+
+  if (onClick) {
+    return (
+      <button
+        onClick={onClick}
+        aria-label={accessibleLabel}
+        style={{ width: size, height: size, fontSize: size * 0.38 }}
+        className={`${baseClasses} cursor-pointer hover:scale-110 active:scale-95
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white
+          focus-visible:ring-offset-2 focus-visible:ring-offset-amber-900`}
+      >
+        {display}
+      </button>
+    )
+  }
+
   return (
-    <button
-      onClick={onClick}
-      disabled={!onClick}
+    <span
+      aria-label={accessibleLabel}
       style={{ width: size, height: size, fontSize: size * 0.38 }}
-      className={`rounded-full flex items-center justify-center transition-transform duration-100 font-mono
-        ${VARIANT_CLASSES[variant]}
-        ${onClick ? 'cursor-pointer hover:scale-110 active:scale-95' : 'cursor-default pointer-events-none'}
-      `}
+      className={`${baseClasses} cursor-default select-none`}
     >
-      {label ?? note}
-    </button>
+      {display}
+    </span>
   )
 }

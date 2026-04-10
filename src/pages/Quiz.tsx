@@ -63,9 +63,12 @@ export default function Quiz() {
   const [phase, setPhase] = useState<Phase>('idle')
   const [target, setTarget] = useState<Target>(() => randomTarget())
   const [result, setResult] = useState<Result | null>(null)
-  const [stats, setStats] = useState({ total: 0, correct: 0 })
+  const [stats, setStats] = useState({ total: 0, correct: 0, streak: 0, bestStreak: 0 })
+  const [showSummary, setShowSummary] = useState(false)
   const [listenProgress, setListenProgress] = useState(0)
+  const [micError, setMicError] = useState<'denied' | null>(null)
 
+  const keepGoingRef = useRef<HTMLButtonElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null)
@@ -92,7 +95,11 @@ export default function Quiz() {
     const midis = collectedMidis.current
     if (midis.length === 0) {
       setResult({ detectedNote: null, detectedMidi: null, semitoneDistance: null })
-      setStats((s) => ({ total: s.total + 1, correct: s.correct }))
+      setStats((s) => {
+        const newTotal = s.total + 1
+        if (newTotal % 10 === 0) setShowSummary(true)
+        return { ...s, total: newTotal, streak: 0, bestStreak: s.bestStreak }
+      })
     } else {
       const buckets = new Map<number, number>()
       for (const m of midis) {
@@ -106,10 +113,14 @@ export default function Quiz() {
       const dist = midiSemitoneDist(medianMidi, target.midi)
 
       setResult({ detectedNote, detectedMidi: medianMidi, semitoneDistance: dist })
-      setStats((s) => ({
-        total: s.total + 1,
-        correct: s.correct + (dist === 0 ? 1 : 0),
-      }))
+      setStats((s) => {
+        const isCorrect = dist === 0
+        const newStreak = isCorrect ? s.streak + 1 : 0
+        const newBest = Math.max(s.bestStreak, newStreak)
+        const newTotal = s.total + 1
+        if (newTotal % 10 === 0) setShowSummary(true)
+        return { total: newTotal, correct: s.correct + (isCorrect ? 1 : 0), streak: newStreak, bestStreak: newBest }
+      })
     }
     setPhase('result')
   }, [stopMic])
@@ -124,8 +135,7 @@ export default function Quiz() {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
     } catch {
-      setResult({ detectedNote: null, detectedMidi: null, semitoneDistance: null })
-      setStats((s) => ({ total: s.total + 1, correct: s.correct }))
+      setMicError('denied')
       setPhase('result')
       return
     }
@@ -190,6 +200,7 @@ export default function Quiz() {
     const t = randomTarget()
     setTarget(t)
     setResult(null)
+    setMicError(null)
     setPhase('target')
   }, [])
 
@@ -201,6 +212,8 @@ export default function Quiz() {
       audioCtxRef.current?.close()
     }
   }, [stopMic])
+
+  useEffect(() => { if (showSummary) keepGoingRef.current?.focus() }, [showSummary])
 
   const accuracy = stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : null
 
@@ -230,7 +243,7 @@ export default function Quiz() {
     : 'border-red-800/60 bg-red-900/30 text-red-300'
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
       {/* Header */}
       <div className="animate-fade-up">
         <h1 className="text-2xl font-bold text-stone-100 mb-1">Note Quiz</h1>
@@ -253,11 +266,12 @@ export default function Quiz() {
             <button
               onClick={startRound}
               className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
-                font-bold px-8 py-3 rounded-xl text-lg transition-all duration-150 shadow-lg shadow-rose-500/20"
+                font-bold px-8 py-3 rounded-xl text-lg transition-all duration-150 shadow-lg shadow-rose-500/20
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
             >
               Start
             </button>
-            <p className="text-xs text-stone-600">Space / Enter to start</p>
+            <p className="text-xs text-stone-500">Space · Enter — start</p>
           </div>
         )}
 
@@ -271,11 +285,13 @@ export default function Quiz() {
             <div className="flex items-center gap-3 mt-1">
               <button
                 onClick={hearNote}
+                aria-label={`Hear note ${target.note}`}
                 className="flex items-center gap-1.5 text-stone-500 hover:text-stone-300
                   text-sm transition-colors duration-150 px-3 py-1.5 rounded-lg border border-stone-600
-                  hover:border-stone-500"
+                  hover:border-stone-500 focus-visible:outline-none focus-visible:ring-2
+                  focus-visible:ring-stone-400 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
               >
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                <svg aria-hidden="true" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M8 5v14l11-7z" />
                 </svg>
                 Hear it
@@ -283,12 +299,14 @@ export default function Quiz() {
               <button
                 onClick={() => startListening(target)}
                 className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
-                  font-bold px-6 py-2 rounded-xl transition-all duration-150 shadow-lg shadow-rose-500/20"
+                  font-bold px-6 py-2 rounded-xl transition-all duration-150 shadow-lg shadow-rose-500/20
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white
+                  focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
               >
                 Check →
               </button>
             </div>
-            <p className="text-xs text-stone-600">Space / Enter to check</p>
+            <p className="text-xs text-stone-500">Space · Enter — check</p>
           </div>
         )}
 
@@ -299,11 +317,18 @@ export default function Quiz() {
             <div className="text-8xl font-black text-stone-600 leading-none tracking-tighter font-mono">
               {target.note}
             </div>
-            <div className="flex items-center gap-2 text-stone-500 text-sm -mt-1">
+            <div aria-hidden="true" className="flex items-center gap-2 text-stone-500 text-sm -mt-1">
               <span className="inline-block w-2 h-2 rounded-full bg-teal-400 animate-mic-pulse" />
               Mic active…
             </div>
-            <div className="w-64 h-2 bg-stone-700 rounded-full overflow-hidden">
+            <div
+              role="progressbar"
+              aria-label="Listening progress"
+              aria-valuenow={Math.round(listenProgress * 100)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              className="w-64 h-2 bg-stone-700 rounded-full overflow-hidden"
+            >
               <div
                 className="h-full bg-rose-400 rounded-full"
                 style={{ width: `${listenProgress * 100}%`, transition: 'none' }}
@@ -316,49 +341,68 @@ export default function Quiz() {
         )}
 
         {/* RESULT */}
-        {phase === 'result' && result && (
+        {phase === 'result' && (
           <div className="flex flex-col items-center gap-5 w-full animate-fade-up">
-            <div className={`w-full rounded-xl border px-5 py-4 space-y-2 ${resultColor}`}>
-              <p className="text-lg font-bold">{distLabel(resultDist)}</p>
-              <div className="text-sm space-y-1">
-                <p>
-                  Target:{' '}
-                  <strong className="text-stone-100 text-base font-mono">{target.note}</strong>
-                </p>
-                {result.detectedNote && (
-                  <p>
-                    You played:{' '}
-                    <strong className="text-stone-200 text-base font-mono">{result.detectedNote}</strong>
-                  </p>
-                )}
-                {result.detectedNote === null && (
-                  <p className="text-stone-500 text-xs">
-                    Try playing louder, or check that mic permission is granted.
-                  </p>
-                )}
+            {micError === 'denied' ? (
+              <div className="w-full rounded-xl border border-stone-600 bg-stone-800/60 px-5 py-4 space-y-3 text-center">
+                <p className="text-stone-200 font-semibold">Mic access was blocked</p>
+                <p className="text-stone-400 text-sm">Check that your browser has microphone permission for this site, then try again.</p>
+                <button
+                  onClick={() => { setMicError(null); startListening(target) }}
+                  className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold px-5 py-2 rounded-xl transition-all duration-150 shadow-lg shadow-rose-500/20"
+                >
+                  Try again
+                </button>
               </div>
-            </div>
+            ) : result && (
+              <>
+                <div className={`w-full rounded-xl border px-5 py-4 space-y-2 ${resultColor}`}>
+                  <p className="text-lg font-bold">{distLabel(resultDist)}</p>
+                  <div className="text-sm space-y-1">
+                    <p>
+                      Target:{' '}
+                      <strong className="text-stone-100 text-base font-mono">{target.note}</strong>
+                    </p>
+                    {result.detectedNote && (
+                      <p>
+                        You played:{' '}
+                        <strong className="text-stone-200 text-base font-mono">{result.detectedNote}</strong>
+                      </p>
+                    )}
+                    {result.detectedNote === null && (
+                      <div className="bg-stone-700/50 border border-stone-600 rounded-lg px-3 py-2">
+                        <p className="text-stone-300 text-sm">Nothing detected — try playing louder, or check mic permissions.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={hearNote}
-                className="flex items-center gap-2 bg-stone-700 hover:bg-stone-600
-                  active:scale-95 text-stone-200 font-medium px-4 py-2 rounded-lg transition-all duration-150 text-sm border border-stone-600"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-                Hear {target.note}
-              </button>
-              <button
-                onClick={startRound}
-                className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
-                  font-bold px-5 py-2 rounded-lg transition-all duration-150 text-sm shadow-lg shadow-rose-500/20"
-              >
-                Next note
-              </button>
-            </div>
-            <p className="text-xs text-stone-600">Space / Enter for next note</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={hearNote}
+                    aria-label={`Hear note ${target.note}`}
+                    className="flex items-center gap-2 bg-stone-700 hover:bg-stone-600
+                      active:scale-95 text-stone-200 font-medium px-4 py-2 rounded-lg transition-all duration-150 text-sm border border-stone-600
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400
+                      focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
+                  >
+                    <svg aria-hidden="true" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                    Hear {target.note}
+                  </button>
+                  <button
+                    onClick={startRound}
+                    className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
+                      font-bold px-5 py-2 rounded-xl transition-all duration-150 text-sm shadow-lg shadow-rose-500/20
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
+                  >
+                    Next note
+                  </button>
+                </div>
+                <p className="text-xs text-stone-500">Space · Enter — next note</p>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -375,11 +419,11 @@ export default function Quiz() {
               {result?.detectedNote && result.detectedNote !== target.note && (
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-rose-400" />
+                    <div className="w-4 h-4 rounded-full bg-sky-400 ring-1 ring-sky-200/40" />
                     <span>Target ({target.note})</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-red-400" />
+                    <div className="w-4 h-4 rounded-full bg-red-400 ring-1 ring-red-200/40" />
                     <span>Detected ({result.detectedNote})</span>
                   </div>
                 </div>
@@ -396,7 +440,7 @@ export default function Quiz() {
       {/* Stats — shown only once there's data */}
       {stats.total > 0 && (
         <div className="flex items-center gap-3 text-sm flex-wrap animate-fade-up">
-          <div className="bg-stone-800 border border-stone-700 rounded-lg px-4 py-2 flex gap-4 tabular-nums">
+          <div className="bg-stone-800 border border-stone-700 rounded-lg px-4 py-2 flex flex-wrap gap-x-4 gap-y-1 tabular-nums">
             <span className="text-stone-400">
               Attempts: <span className="text-stone-100 font-semibold">{stats.total}</span>
             </span>
@@ -418,13 +462,58 @@ export default function Quiz() {
                 </span>
               </span>
             )}
+            {stats.streak > 1 && (
+              <span className="text-stone-400">
+                Streak: <span className="text-rose-300 font-semibold">{stats.streak}</span>
+              </span>
+            )}
+            {stats.bestStreak > 2 && (
+              <span className="text-stone-400">
+                Best: <span className="text-stone-100 font-semibold">{stats.bestStreak}</span>
+              </span>
+            )}
           </div>
           <button
-            onClick={() => setStats({ total: 0, correct: 0 })}
+            onClick={() => setStats({ total: 0, correct: 0, streak: 0, bestStreak: 0 })}
             className="text-xs text-stone-600 hover:text-stone-400 transition-colors duration-150 px-2 py-1"
           >
             Reset
           </button>
+        </div>
+      )}
+
+      {/* Session summary modal */}
+      {showSummary && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/80 backdrop-blur-sm"
+          onClick={() => setShowSummary(false)}
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowSummary(false) }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="summary-title"
+            className="bg-stone-800 border border-stone-700 rounded-2xl p-8 flex flex-col items-center gap-5 w-80 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p id="summary-title" className="text-[11px] font-medium text-stone-400 tracking-wide">Session checkpoint</p>
+            <p className="text-5xl font-black text-stone-100 tabular-nums">{accuracy}%</p>
+            <div className="w-full bg-stone-700 rounded-lg px-4 py-3 flex justify-around tabular-nums text-sm">
+              <span className="text-stone-400">Correct: <span className="text-emerald-400 font-semibold">{stats.correct}</span></span>
+              <span className="text-stone-400">Total: <span className="text-stone-100 font-semibold">{stats.total}</span></span>
+              {stats.bestStreak > 1 && (
+                <span className="text-stone-400">Best: <span className="text-rose-300 font-semibold">{stats.bestStreak}</span></span>
+              )}
+            </div>
+            <button
+              ref={keepGoingRef}
+              onClick={() => setShowSummary(false)}
+              className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
+                font-bold px-6 py-2.5 rounded-xl transition-all duration-150 shadow-lg shadow-rose-500/20"
+            >
+              Keep going
+            </button>
+          </div>
         </div>
       )}
     </div>

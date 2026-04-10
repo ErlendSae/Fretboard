@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
 import Explorer from './pages/Explorer'
 import Quiz from './pages/Quiz'
-import ScaleQuiz from './pages/ScaleQuiz'
 import Intervals from './pages/Intervals'
 import Progressions from './pages/Progressions'
 
@@ -9,7 +8,6 @@ const NAV_LINKS = [
   { to: '/',              label: 'Explorer',     end: true  },
   { to: '/progressions',  label: 'Progressions', end: false },
   { to: '/quiz',          label: 'Note Quiz',    end: false },
-  { to: '/scale-quiz',    label: 'Scale Quiz',   end: false },
   { to: '/intervals',     label: 'Intervals',    end: false },
 ]
 
@@ -43,7 +41,6 @@ export default function App() {
             <Route path="/"              element={<Explorer />} />
             <Route path="/progressions"  element={<Progressions />} />
             <Route path="/quiz"          element={<Quiz />} />
-            <Route path="/scale-quiz"    element={<ScaleQuiz />} />
             <Route path="/intervals"     element={<Intervals />} />
           </Routes>
         </main>
