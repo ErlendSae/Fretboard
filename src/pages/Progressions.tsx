@@ -1,7 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import Fretboard, { type FretMarker } from '../components/Fretboard'
-import RootPicker from '../components/RootPicker'
-import { type NoteName, NUM_STRINGS, NUM_FRETS, fretToNote, noteIndex } from '../utils/notes'
+import {
+  ControlLabel,
+  ControlPanel,
+  PageWrapper,
+  SectionHeader,
+  SelectInput,
+} from '../components/ui'
+import { CHROMATIC_NOTES, type NoteName, NUM_STRINGS, NUM_FRETS, fretToNote, noteIndex } from '../utils/notes'
 import { SCALES } from '../utils/scales'
 import { getDiatonicChords, isMinorTonality, PROGRESSION_PRESETS, type DiatonicChord, type ChordQuality } from '../utils/chords'
 import { playNote } from '../utils/audio'
@@ -26,17 +32,17 @@ function strumChord(notes: readonly NoteName[]): void {
 // ─── Quality styling ──────────────────────────────────────────────────────────
 
 const QUALITY_ACTIVE: Record<ChordQuality, string> = {
-  major:      'bg-stone-100/10 border-stone-300/40 text-stone-100',
-  minor:      'bg-violet-500/15 border-violet-400/40 text-violet-200',
-  diminished: 'bg-rose-500/15 border-rose-400/40 text-rose-200',
-  augmented:  'bg-amber-500/15 border-amber-400/40 text-amber-200',
+  major:      'bg-stone-200/10 border-stone-200/30 text-stone-200',
+  minor:      'bg-plum-500/15 border-plum-400/40 text-plum-200',
+  diminished: 'bg-terra-500/15 border-terra-400/40 text-terra-200',
+  augmented:  'bg-sun-500/15 border-sun-400/40 text-sun-200',
 }
 
 const QUALITY_ROMAN: Record<ChordQuality, string> = {
   major:      'text-stone-500',
-  minor:      'text-violet-400',
-  diminished: 'text-rose-400',
-  augmented:  'text-amber-400',
+  minor:      'text-plum-400',
+  diminished: 'text-terra-400',
+  augmented:  'text-sun-400',
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -118,10 +124,13 @@ export default function Progressions() {
 
   // ── Fretboard markers ─────────────────────────────────────────────────────
 
+  const selectedChord = chords && selectedDegree !== null ? chords[selectedDegree] : null
+
   const markers: FretMarker[] = (() => {
     if (!chords || selectedDegree === null) return []
     const chord = chords[selectedDegree]
     if (!chord) return []
+
     const [chordRoot, third, fifth] = chord.notes
     const list: FretMarker[] = []
     for (let s = 0; s < NUM_STRINGS; s++) {
@@ -135,41 +144,35 @@ export default function Progressions() {
     return list
   })()
 
-  const selectedChord = chords && selectedDegree !== null ? chords[selectedDegree] : null
   const currentPreset = activePreset !== null ? presets[activePreset] : null
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+    <PageWrapper>
 
       {/* Header */}
-      <div className="animate-fade-up">
-        <h1 className="text-2xl font-bold text-stone-100">
-          Chord Progressions{' '}
-          <span className="font-normal text-rose-400">{root}</span><span className="font-normal text-stone-400"> {scale.name}</span>
-        </h1>
-        <p className="text-stone-500 text-sm mt-1">
-          Every scale produces 7 chords — one built on each note. These always fit together.
-        </p>
-      </div>
+      <SectionHeader
+        title={<>Progressions{' '}<span className="font-normal text-terra-400">{root}</span><span className="font-normal text-stone-400"> {scale.name}</span></>}
+        subtitle="Every scale has 7 chords — one built on each note. They all share the same notes, so they always sound right together."
+      />
 
       {/* Controls */}
-      <div className="flex flex-wrap gap-6 items-end animate-fade-up">
+      <ControlPanel>
         <div className="space-y-2">
-          <span className="text-[11px] font-medium text-stone-400 tracking-wide">Root</span>
-          <RootPicker
+          <ControlLabel htmlFor="progressions-key">Key</ControlLabel>
+          <SelectInput
+            id="progressions-key"
             value={root}
-            onChange={(note) => { setRoot(note); setSelectedDegree(0) }}
-          />
+            onChange={(e) => { setRoot(e.target.value as NoteName); setSelectedDegree(0) }}
+          >
+            {CHROMATIC_NOTES.map(n => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </SelectInput>
         </div>
 
         <div className="space-y-2">
-          <label
-            htmlFor="progressions-scale"
-            className="text-[11px] font-medium text-stone-400 tracking-wide"
-          >
-            Scale
-          </label>
-          <select
+          <ControlLabel htmlFor="progressions-scale">Scale</ControlLabel>
+          <SelectInput
             id="progressions-scale"
             value={scaleIdx}
             onChange={(e) => {
@@ -177,21 +180,18 @@ export default function Progressions() {
               setSelectedDegree(0)
               setActivePreset(null)
             }}
-            className="bg-stone-800 border border-stone-700 text-stone-200 rounded-lg px-3 py-2
-              text-sm focus-visible:outline-none focus-visible:border-stone-500 focus-visible:ring-1
-              focus-visible:ring-stone-500/40 cursor-pointer min-w-52 transition-colors duration-150"
           >
             {SCALES.map((s, i) => s.intervals.length === 7 && (
               <option key={i} value={i}>{s.name}</option>
             ))}
-          </select>
+          </SelectInput>
         </div>
-      </div>
+      </ControlPanel>
 
       {/* ── Two-column main area ───────────────────────────────────────────── */}
       <div className="flex flex-col md:flex-row gap-8 items-start animate-fade-up">
 
-        {/* Left: Fretboard + educational content */}
+        {/* Left: Fretboard */}
         <div className="flex-1 min-w-0 space-y-4">
 
           {/* Fretboard legend */}
@@ -203,11 +203,11 @@ export default function Progressions() {
                   <span>Root ({selectedChord.notes[0]})</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-violet-300 ring-1 ring-violet-200/40 shrink-0" />
+                  <div className="w-4 h-4 rounded-full bg-sun-400 ring-1 ring-sun-200/40 shrink-0" />
                   <span>Third ({selectedChord.notes[1]})</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded-full bg-rose-300 ring-1 ring-rose-200/40 shrink-0" />
+                  <div className="w-4 h-4 rounded-full bg-terra-300 ring-1 ring-terra-200/40 shrink-0" />
                   <span>Fifth ({selectedChord.notes[2]})</span>
                 </div>
                 <span className="text-stone-700">·</span>
@@ -220,37 +220,15 @@ export default function Progressions() {
           </div>
 
           <Fretboard markers={markers} />
-
-          {/* Educational content — lives below the fretboard, fills the left column */}
-          <div className="mt-6 space-y-3 border-t border-stone-800 pt-6">
-            <p className="text-[11px] font-medium text-stone-500">How diatonic chords work</p>
-            <div className="space-y-2 text-stone-500 text-[0.9375rem] leading-relaxed">
-              <p>
-                Stack the 1st, 3rd, and 5th scale notes above any root — that's a triad.
-                Do it on all 7 notes and you get the <span className="text-stone-400">diatonic chord family</span>.
-                Every chord is built from the same pool of notes, so they always fit.
-              </p>
-              <p>
-                <span className="font-mono text-stone-400">I – IV – V</span> in C is{' '}
-                <span className="font-mono text-stone-400">C – F – G</span>.
-                In G it's <span className="font-mono text-stone-400">G – C – D</span>.
-                Different key, same function — same feel.
-              </p>
-              <p>
-                Uppercase = major · lowercase = minor · <span className="font-mono">°</span> = diminished.
-                The Roman numeral tells you the chord's <em>role</em>, not its letter name.
-              </p>
-            </div>
-          </div>
         </div>
 
-        {/* Right: Compact control panel */}
+        {/* Right: Chord list + progressions */}
         {chords && (
           <div className="w-full md:w-52 shrink-0 max-w-xs mx-auto md:mx-0 space-y-5">
 
             {/* Chord family */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-medium text-stone-400 tracking-wide">Chords in key</label>
+              <label className="text-[11px] font-semibold text-stone-500 tracking-[0.08em] uppercase">Chords in key</label>
               <div className="space-y-1">
                 {chords.map((chord) => {
                   const isActive = selectedDegree === chord.degree
@@ -282,24 +260,23 @@ export default function Progressions() {
               </div>
             </div>
 
-            {/* Divider */}
             <div className="border-t border-stone-800" />
 
             {/* Progressions */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-medium text-stone-400 tracking-wide">Progressions</label>
+                <label className="text-[11px] font-semibold text-stone-500 tracking-[0.08em] uppercase">Progressions</label>
                 {activePreset !== null && (
                   <button
                     onClick={isPlaying ? stopPlayback : startPlayback}
                     aria-label={isPlaying ? 'Stop progression playback' : 'Play progression'}
                     aria-pressed={isPlaying}
                     className={`text-xs font-medium px-3 py-1.5 rounded-md border transition-all duration-150
-                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500
                       focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950
                       ${isPlaying
-                        ? 'bg-rose-500 text-white border-rose-400'
-                        : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
+                        ? 'bg-terra-500 text-stone-200 border-terra-400'
+                        : 'bg-stone-800 text-stone-400 border-stone-200/10 hover:border-stone-200/20 hover:text-stone-200'
                       }`}
                   >
                     <span aria-hidden="true">{isPlaying ? '◼ Stop' : '▶ Play'}</span>
@@ -317,7 +294,7 @@ export default function Progressions() {
                       onClick={() => activatePreset(i)}
                       className={`w-full text-left px-3 py-2 rounded-lg border transition-all duration-150
                         ${isActive
-                          ? 'bg-rose-500/10 border-rose-500/40'
+                          ? 'bg-terra-500/10 border-terra-500/40'
                           : 'border-transparent hover:border-stone-700 hover:bg-stone-800/60'
                         }`}
                     >
@@ -334,7 +311,7 @@ export default function Progressions() {
                 })}
               </div>
 
-              {/* Active preset detail — left-border accent, no nested card */}
+              {/* Active preset detail */}
               {currentPreset && (
                 <div className="mt-3 pl-3 border-l-2 border-stone-700 space-y-2">
                   {isPlaying && (
@@ -343,7 +320,7 @@ export default function Progressions() {
                         <span
                           key={si}
                           className={`font-mono text-xs font-bold transition-colors duration-150 ${
-                            d === selectedDegree ? 'text-rose-300' : 'text-stone-700'
+                            d === selectedDegree ? 'text-terra-300' : 'text-stone-700'
                           }`}
                         >
                           {chords[d]?.name}
@@ -369,6 +346,6 @@ export default function Progressions() {
         )}
       </div>
 
-    </div>
+    </PageWrapper>
   )
 }

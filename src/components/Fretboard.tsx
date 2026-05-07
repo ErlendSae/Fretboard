@@ -40,7 +40,15 @@ export default function Fretboard({ markers = [], onFretClick, clickableStrings 
   const STRING_LABEL_WIDTH = 24 // px reserved left of nut for string name labels
 
   return (
-    <div className="overflow-x-auto pb-2">
+    <div
+      className="relative overflow-x-auto pb-2"
+      style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
+    >
+      {/* Right-edge fade — mobile only, hints that the fretboard scrolls horizontally */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-stone-900 to-transparent md:hidden z-10"
+      />
       {/* Outer wrapper adds left room for string name labels */}
       <div className="relative inline-block" style={{ paddingLeft: STRING_LABEL_WIDTH }}>
 
@@ -60,14 +68,14 @@ export default function Fretboard({ markers = [], onFretClick, clickableStrings 
       ))}
 
       <div
-        className="relative bg-gradient-to-b from-amber-950 via-amber-900 to-amber-950 rounded-xl border border-amber-800/50 shadow-2xl shadow-black/60 select-none"
-        style={{ width: neckWidth, height: neckHeight }}
+        className="relative rounded-xl border border-[#784018]/50 shadow-2xl shadow-black/60 select-none"
+        style={{ width: neckWidth, height: neckHeight, background: 'linear-gradient(to bottom, var(--wood-deep), var(--wood-mid), var(--wood-deep))' }}
       >
         {/* Fret lines */}
         {Array.from({ length: NUM_FRETS + 1 }, (_, f) => (
           <div
             key={f}
-            className={`absolute top-0 bottom-0 ${f === 0 ? 'w-[5px] bg-stone-300/90' : 'w-px bg-amber-600/50'}`}
+            className={`absolute top-0 bottom-0 ${f === 0 ? 'w-[5px] bg-[#ead7b8]/90' : 'w-px bg-[#c89d5a]/85'}`}
             style={{ left: f * FRET_WIDTH }}
           />
         ))}
@@ -80,7 +88,7 @@ export default function Fretboard({ markers = [], onFretClick, clickableStrings 
           return (
             <div
               key={s}
-              className="absolute left-0 right-0 bg-stone-300/75"
+              className="absolute left-0 right-0 bg-[#ead7b8]/85"
               style={{ top: y, height: Math.max(0.8, thickness) }}
             />
           )
@@ -94,18 +102,18 @@ export default function Fretboard({ markers = [], onFretClick, clickableStrings 
             // Double dot at 12th fret
             <div key={fret}>
               <div
-                className="absolute w-2.5 h-2.5 rounded-full bg-stone-400/30"
+                className="absolute w-2.5 h-2.5 rounded-full bg-[#d4b88a]/45"
                 style={{ left: x - 5, top: midY - STRING_GAP - 5 }}
               />
               <div
-                className="absolute w-2.5 h-2.5 rounded-full bg-stone-400/30"
+                className="absolute w-2.5 h-2.5 rounded-full bg-[#d4b88a]/45"
                 style={{ left: x - 5, top: midY + STRING_GAP - 5 }}
               />
             </div>
           ) : (
             <div
               key={fret}
-              className="absolute w-2.5 h-2.5 rounded-full bg-stone-400/30"
+              className="absolute w-2.5 h-2.5 rounded-full bg-[#d4b88a]/45"
               style={{ left: x - 5, top: midY - 5 }}
             />
           )

@@ -2,9 +2,115 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Metric-matched fallback for Space Grotesk — minimises layout shift while the
-   Google Font loads. Overrides approximate Space Grotesk's x-height and metrics
-   so the fallback renders at near-identical size. */
+/* ── Warm design-system tokens ───────────────────────────────────────────────
+   Source: design/colors_and_type.css — walnut surfaces, parchment ink,
+   terracotta primary. These vars are consumed by direct CSS and any component
+   that needs a value Tailwind can't express with opacity modifiers.          */
+
+:root {
+  /* Surfaces (walnut, darkest → lightest) */
+  --surface-pitch:   #1a1110;
+  --surface-walnut:  #261917;
+  --surface-cocoa:   #33221f;
+  --surface-clay:    #4a322d;
+  --surface-mist:    #6b4a42;
+
+  /* Parchment ink (text, lightest → darkest) */
+  --ink-cream:       #f5ead6;
+  --ink-paper:       #e8d9bf;
+  --ink-dust:        #b8a48a;
+  --ink-faint:       #8a7560;
+  --ink-whisper:     #5d4a3a;
+
+  /* Terracotta (primary accent) */
+  --terra-50:        #fbe8dd;
+  --terra-200:       #f0b89a;
+  --terra-400:       #e08866;
+  --terra-500:       #cf6a44;
+  --terra-600:       #b3522e;
+  --terra-700:       #8a3c1f;
+  --terra-900:       #4a1f0e;
+
+  /* Sunset gold (secondary accent) */
+  --sun-200:         #f4d8a3;
+  --sun-400:         #e8b15c;
+  --sun-500:         #d99435;
+  --sun-700:         #8a5a18;
+
+  /* Ember (target note marker) */
+  --ember-300:       #f7a890;
+  --ember-500:       #e87959;
+
+  /* Sage (positive / correct) */
+  --sage-300:        #b8c9a6;
+  --sage-500:        #7a9665;
+  --sage-700:        #3d4f30;
+
+  /* Plum (chord tone) */
+  --plum-300:        #d4a5b8;
+  --plum-500:        #9a5d76;
+
+  /* Brick (negative / wrong) */
+  --brick-300:       #d99a8a;
+  --brick-500:       #b65441;
+  --brick-700:       #6b2818;
+
+  /* Wood gradient — sacred, fretboard only */
+  --wood-deep:       #2c1404;
+  --wood-mid:        #5a2e10;
+  --wood-light:      #784018;
+  --wood-fret:       #c89d5a;
+  --wood-string:     #ead7b8;
+  --wood-inlay:      #d4b88a;
+
+  /* Semantic roles */
+  --bg:              var(--surface-pitch);
+  --bg-raised:       var(--surface-walnut);
+  --bg-elevated:     var(--surface-cocoa);
+  --bg-input:        var(--surface-cocoa);
+  --fg:              var(--ink-cream);
+  --fg-muted:        var(--ink-dust);
+  --fg-faint:        var(--ink-faint);
+  --accent:          var(--terra-500);
+  --accent-hover:    var(--terra-400);
+  --accent-active:   var(--terra-600);
+  --border:          color-mix(in oklab, var(--ink-cream) 8%, transparent);
+  --border-strong:   color-mix(in oklab, var(--ink-cream) 16%, transparent);
+
+  /* Note-marker semantics */
+  --note-root:       var(--ink-cream);
+  --note-scale:      var(--terra-200);
+  --note-chord:      var(--sun-400);
+  --note-correct:    var(--sage-500);
+  --note-target:     var(--ember-500);
+  --note-wrong:      var(--brick-500);
+
+  /* Spacing */
+  --space-1:  4px;  --space-2:  8px;  --space-3:  12px; --space-4:  16px;
+  --space-5:  20px; --space-6:  24px; --space-8:  32px; --space-10: 40px;
+  --space-12: 48px; --space-16: 64px;
+
+  /* Radii */
+  --radius-xs: 4px; --radius-sm: 6px;  --radius-md: 10px;
+  --radius-lg: 14px; --radius-xl: 20px; --radius-pill: 999px;
+
+  /* Shadows */
+  --shadow-sm:  0 1px 2px rgba(26, 17, 16, 0.4);
+  --shadow-md:  0 4px 12px rgba(26, 17, 16, 0.5), 0 1px 3px rgba(26, 17, 16, 0.3);
+  --shadow-lg:  0 12px 32px rgba(26, 17, 16, 0.55), 0 4px 8px rgba(26, 17, 16, 0.3);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms; --dur-base: 180ms; --dur-slow: 320ms;
+
+  /* Type families */
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-sans:    'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+/* Metric-matched fallback for Space Grotesk — minimises FOUT while Google
+   Font loads. Overrides approximate Space Grotesk's x-height and metrics. */
 @font-face {
   font-family: 'Space Grotesk Fallback';
   src: local('Arial');
@@ -15,8 +121,7 @@
 }
 
 /* beatDot is used via inline animation style (dynamic duration/delay per dot),
-   so it must live here rather than in tailwind.config keyframes — Tailwind's
-   JIT won't emit a keyframe that isn't referenced by a scanned class name. */
+   so it must live here rather than in tailwind.config keyframes. */
 @keyframes beatDot {
   0%   { opacity: 1;    transform: scale(1.4); }
   15%  { opacity: 0.25; transform: scale(0.9); }
@@ -32,25 +137,15 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-kerning: normal;
+    font-feature-settings: "ss01", "cv11";
   }
 
   /* Warm, tinted scrollbars */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: theme('colors.stone.700');
-    border-radius: 99px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: theme('colors.stone.600');
-  }
+  ::-webkit-scrollbar        { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track  { background: transparent; }
+  ::-webkit-scrollbar-thumb  { background: #33221f; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #4a322d; }
 
-  /* Reduce motion for users who prefer it */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 0.01ms !important;

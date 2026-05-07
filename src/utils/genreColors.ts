@@ -1,38 +1,33 @@
-/**
- * Maps musical genre names to Tailwind color classes for genre tag chips.
- * Color choices follow musical character: amber = blues/soul, rose = rock,
- * violet = jazz/fusion, emerald = folk/country, sky = classical.
- */
 const GENRE_COLORS: Record<string, string> = {
-  // Blues & Soul — warm amber
-  'Blues':          'bg-amber-950/80 text-amber-300',
-  'Soul':           'bg-amber-950/80 text-amber-300',
-  // R&B, Funk — orange
-  'R&B':            'bg-orange-950/80 text-orange-300',
-  'Funk':           'bg-orange-950/80 text-orange-300',
-  // Rock — rose (matches app accent)
-  'Rock':           'bg-rose-950/80 text-rose-300',
-  // Metal — deeper red
-  'Metal':          'bg-red-950/80 text-red-300',
-  // Jazz, Fusion, Avant-garde — violet
-  'Jazz':           'bg-violet-950/80 text-violet-300',
-  'Fusion':         'bg-violet-950/80 text-violet-300',
-  'Avant-garde':    'bg-violet-950/80 text-violet-300',
-  // Country, Folk — emerald
-  'Country':        'bg-emerald-950/80 text-emerald-300',
-  'Folk':           'bg-emerald-950/80 text-emerald-300',
-  // Pop — teal
-  'Pop':            'bg-teal-950/80 text-teal-300',
-  // Classical, Film scores — sky blue
-  'Classical':      'bg-sky-950/80 text-sky-300',
-  'Film scores':    'bg-sky-950/80 text-sky-300',
-  // Prog — indigo
-  'Prog':           'bg-indigo-950/80 text-indigo-300',
-  // Latin, Flamenco — warm orange/amber
-  'Latin':          'bg-orange-950/80 text-orange-300',
-  'Flamenco':       'bg-amber-950/80 text-amber-300',
-  // Middle-Eastern — yellow
-  'Middle-Eastern': 'bg-yellow-950/80 text-yellow-300',
+  // Blues & Soul — warm sun gold
+  'Blues':          'bg-sun-900/80 text-sun-400',
+  'Soul':           'bg-sun-900/80 text-sun-400',
+  // R&B, Funk — terra orange
+  'R&B':            'bg-terra-900/80 text-terra-300',
+  'Funk':           'bg-terra-900/80 text-terra-300',
+  // Rock — terra (app primary)
+  'Rock':           'bg-terra-950/80 text-terra-300',
+  // Metal — brick (deepest red)
+  'Metal':          'bg-brick-950/80 text-brick-300',
+  // Jazz, Fusion, Avant-garde — plum
+  'Jazz':           'bg-plum-950/80 text-plum-300',
+  'Fusion':         'bg-plum-950/80 text-plum-300',
+  'Avant-garde':    'bg-plum-950/80 text-plum-300',
+  // Country, Folk — sage
+  'Country':        'bg-sage-950/80 text-sage-300',
+  'Folk':           'bg-sage-950/80 text-sage-300',
+  // Pop — neutral stone
+  'Pop':            'bg-stone-700/80 text-stone-300',
+  // Classical, Film scores — stone (no blues in the palette)
+  'Classical':      'bg-stone-700/80 text-stone-300',
+  'Film scores':    'bg-stone-700/80 text-stone-300',
+  // Prog — plum (warm purple)
+  'Prog':           'bg-plum-900/80 text-plum-300',
+  // Latin, Flamenco — terra warm
+  'Latin':          'bg-terra-900/80 text-terra-300',
+  'Flamenco':       'bg-terra-900/80 text-terra-300',
+  // Middle-Eastern — sun gold
+  'Middle-Eastern': 'bg-sun-900/80 text-sun-400',
 }
 
 export function genreColorClass(genre: string): string {

@@ -3,7 +3,7 @@ import type { NoteName } from '../utils/notes'
 export type MarkerVariant =
   | 'root'      // root note — cream/ivory
   | 'scale'     // other scale note — stone
-  | 'chord'     // chord tone (1st/3rd/5th degree) — rose-300
+  | 'chord'     // chord tone (1st/3rd/5th degree) — terra-300
   | 'correct'   // quiz: correct answer — green
   | 'close1'    // 1 semitone off — yellow-green
   | 'close2'    // 2 semitones off — yellow
@@ -19,14 +19,14 @@ interface NoteMarkerProps {
 }
 
 const VARIANT_CLASSES: Record<MarkerVariant, string> = {
-  root:    'bg-white text-stone-900 ring-2 ring-stone-300/60 font-bold shadow-stone-200/40 shadow-lg',
-  scale:   'bg-rose-300 text-stone-900 ring-1 ring-rose-200/60',
-  chord:   'bg-violet-300 text-stone-900 ring-1 ring-violet-200/60',
-  correct: 'bg-emerald-400 text-stone-900 ring-2 ring-emerald-200/60 font-bold shadow-emerald-400/40 shadow-lg',
-  close1:  'bg-lime-300 text-stone-900 ring-1 ring-lime-200/60',
-  close2:  'bg-yellow-300 text-stone-900 ring-1 ring-yellow-200/60',
-  far:     'bg-red-400 text-white ring-1 ring-red-200/60',
-  target:  'bg-sky-400 text-stone-900 ring-2 ring-sky-200/60 font-bold shadow-sky-400/40 shadow-lg',
+  root:    'bg-stone-200 text-stone-900 ring-2 ring-stone-300/60 font-bold',
+  scale:   'bg-terra-300 text-stone-900 ring-1 ring-terra-200/60',
+  chord:   'bg-sun-400 text-stone-900 ring-1 ring-sun-200/60',
+  correct: 'bg-sage-400 text-stone-900 ring-2 ring-sage-200/60 font-bold',
+  close1:  'bg-sun-400 text-stone-900 ring-1 ring-sun-200/60',
+  close2:  'bg-terra-200 text-stone-900 ring-1 ring-terra-200/60',
+  far:     'bg-brick-400 text-stone-900 ring-1 ring-brick-200/60',
+  target:  'bg-ember-400 text-stone-900 ring-2 ring-ember-300/60 font-bold',
 }
 
 export default function NoteMarker({ note, label, variant, onClick, size = 28 }: NoteMarkerProps) {

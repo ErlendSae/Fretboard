@@ -33,20 +33,24 @@ export default function RootPicker({ value, onChange, layout = 'wrap' }: RootPic
               const idx = CHROMATIC_NOTES.indexOf(note)
               if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
                 e.preventDefault()
-                buttonRefs.current[(idx + 1) % CHROMATIC_NOTES.length]?.focus()
+                const next = (idx + 1) % CHROMATIC_NOTES.length
+                buttonRefs.current[next]?.focus()
+                onChange(CHROMATIC_NOTES[next]!)
               } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
                 e.preventDefault()
-                buttonRefs.current[(idx - 1 + CHROMATIC_NOTES.length) % CHROMATIC_NOTES.length]?.focus()
+                const prev = (idx - 1 + CHROMATIC_NOTES.length) % CHROMATIC_NOTES.length
+                buttonRefs.current[prev]?.focus()
+                onChange(CHROMATIC_NOTES[prev]!)
               }
             }}
             className={`
               flex items-center justify-center rounded-lg text-sm font-semibold font-mono
               transition-all duration-150 border
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500
               focus-visible:ring-offset-2 focus-visible:ring-offset-stone-900
               ${layout === 'grid' ? 'w-full aspect-square' : 'w-11 h-11'}
               ${isSelected
-                ? 'bg-rose-500 text-white border-rose-400 shadow-md shadow-rose-500/20'
+                ? 'bg-terra-500 text-white border-terra-400'
                 : 'bg-stone-800 text-stone-400 border-stone-700 hover:border-stone-500 hover:text-stone-200'
               }
             `}

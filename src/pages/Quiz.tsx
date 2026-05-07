@@ -1,6 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Fretboard, { type FretMarker } from '../components/Fretboard'
 import {
+  GhostButton,
+  PageWrapper,
+  PhaseCard,
+  PrimaryButton,
+  SecondaryButton,
+  SectionHeader,
+  StatBadge,
+} from '../components/ui'
+import { getStats, recordSession } from '../lib/store'
+import {
   NUM_STRINGS, NUM_FRETS,
   fretToMidi, fretToNote, midiToNote,
   type NoteName,
@@ -63,12 +73,17 @@ export default function Quiz() {
   const [phase, setPhase] = useState<Phase>('idle')
   const [target, setTarget] = useState<Target>(() => randomTarget())
   const [result, setResult] = useState<Result | null>(null)
-  const [stats, setStats] = useState({ total: 0, correct: 0, streak: 0, bestStreak: 0 })
+  const [stats, setStats] = useState(() => {
+    const stored = getStats().noteTrainer
+    return { total: 0, correct: 0, streak: 0, bestStreak: stored.bestStreak }
+  })
   const [showSummary, setShowSummary] = useState(false)
   const [listenProgress, setListenProgress] = useState(0)
   const [micError, setMicError] = useState<'denied' | null>(null)
 
   const keepGoingRef = useRef<HTMLButtonElement>(null)
+  const sessionStartedAtRef = useRef<string>(new Date().toISOString())
+  const sessionRoundsRef = useRef<{ total: number; correct: number; bestStreak: number }>({ total: 0, correct: 0, bestStreak: 0 })
   const streamRef = useRef<MediaStream | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null)
@@ -97,6 +112,7 @@ export default function Quiz() {
       setResult({ detectedNote: null, detectedMidi: null, semitoneDistance: null })
       setStats((s) => {
         const newTotal = s.total + 1
+        sessionRoundsRef.current = { total: newTotal, correct: s.correct, bestStreak: s.bestStreak }
         if (newTotal % 10 === 0) setShowSummary(true)
         return { ...s, total: newTotal, streak: 0, bestStreak: s.bestStreak }
       })
@@ -118,8 +134,10 @@ export default function Quiz() {
         const newStreak = isCorrect ? s.streak + 1 : 0
         const newBest = Math.max(s.bestStreak, newStreak)
         const newTotal = s.total + 1
+        const newCorrect = s.correct + (isCorrect ? 1 : 0)
+        sessionRoundsRef.current = { total: newTotal, correct: newCorrect, bestStreak: newBest }
         if (newTotal % 10 === 0) setShowSummary(true)
-        return { total: newTotal, correct: s.correct + (isCorrect ? 1 : 0), streak: newStreak, bestStreak: newBest }
+        return { total: newTotal, correct: newCorrect, streak: newStreak, bestStreak: newBest }
       })
     }
     setPhase('result')
@@ -182,6 +200,14 @@ export default function Quiz() {
     }, 80)
   }, [finishListening])
 
+  const startRound = useCallback(() => {
+    const t = randomTarget()
+    setTarget(t)
+    setResult(null)
+    setMicError(null)
+    setPhase('target')
+  }, [])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== 'Space' && e.code !== 'Enter') return
@@ -195,14 +221,6 @@ export default function Quiz() {
     return () => window.removeEventListener('keydown', onKey)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, target])
-
-  const startRound = useCallback(() => {
-    const t = randomTarget()
-    setTarget(t)
-    setResult(null)
-    setMicError(null)
-    setPhase('target')
-  }, [])
 
   const hearNote = useCallback(() => playNote(target.midi), [target])
 
@@ -237,23 +255,21 @@ export default function Quiz() {
 
   const resultDist = result?.semitoneDistance ?? null
   const resultColor =
-    resultDist === null ? 'border-stone-600 bg-stone-800/60 text-stone-300'
-    : resultDist === 0  ? 'border-emerald-700/60 bg-emerald-900/30 text-emerald-300'
-    : resultDist <= 2   ? 'border-yellow-700/60 bg-yellow-900/30 text-yellow-300'
-    : 'border-red-800/60 bg-red-900/30 text-red-300'
+    resultDist === null ? 'border-stone-200/10 bg-stone-800/60 text-stone-300'
+    : resultDist === 0  ? 'border-sage-700/60 bg-sage-900/30 text-sage-300'
+    : resultDist <= 2   ? 'border-sun-700/60 bg-sun-900/30 text-sun-300'
+    : 'border-brick-800/60 bg-brick-900/30 text-brick-300'
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+    <PageWrapper>
       {/* Header */}
-      <div className="animate-fade-up">
-        <h1 className="text-2xl font-bold text-stone-100 mb-1">Note Quiz</h1>
-        <p className="text-stone-500 text-sm">
-          Find the note on your guitar and play it — the mic will check your answer.
-        </p>
-      </div>
+      <SectionHeader
+        title="Note Quiz"
+        subtitle="Find the note on your guitar and play it — the mic will check your answer."
+      />
 
       {/* Main phase card */}
-      <div className="bg-stone-800 border border-stone-700 rounded-2xl p-8 flex flex-col items-center gap-6 min-h-56">
+      <PhaseCard>
 
         {/* IDLE */}
         {phase === 'idle' && (
@@ -263,14 +279,13 @@ export default function Quiz() {
               <br />
               Find it on your guitar, then hit <strong className="text-stone-200">Check</strong>.
             </p>
-            <button
+            <PrimaryButton
+              size="hero"
               onClick={startRound}
-              className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
-                font-bold px-8 py-3 rounded-xl text-lg transition-all duration-150 shadow-lg shadow-rose-500/20
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
+              className="text-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
             >
               Start
-            </button>
+            </PrimaryButton>
             <p className="text-xs text-stone-500">Space · Enter — start</p>
           </div>
         )}
@@ -279,32 +294,27 @@ export default function Quiz() {
         {phase === 'target' && (
           <div className="flex flex-col items-center gap-5 animate-fade-up">
             <p className="text-xs text-stone-400 font-medium">Find this note</p>
-            <div className="text-8xl font-black text-stone-100 leading-none tracking-tighter font-mono">
+            <div className="text-8xl font-black text-stone-200 leading-none tracking-tight font-display">
               {target.note}
             </div>
             <div className="flex items-center gap-3 mt-1">
-              <button
+              <SecondaryButton
+                ghost
                 onClick={hearNote}
                 aria-label={`Hear note ${target.note}`}
-                className="flex items-center gap-1.5 text-stone-500 hover:text-stone-300
-                  text-sm transition-colors duration-150 px-3 py-1.5 rounded-lg border border-stone-600
-                  hover:border-stone-500 focus-visible:outline-none focus-visible:ring-2
-                  focus-visible:ring-stone-400 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
+                className="flex items-center gap-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
               >
                 <svg aria-hidden="true" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M8 5v14l11-7z" />
                 </svg>
                 Hear it
-              </button>
-              <button
+              </SecondaryButton>
+              <PrimaryButton
                 onClick={() => startListening(target)}
-                className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
-                  font-bold px-6 py-2 rounded-xl transition-all duration-150 shadow-lg shadow-rose-500/20
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white
-                  focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
+                className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
               >
                 Check →
-              </button>
+              </PrimaryButton>
             </div>
             <p className="text-xs text-stone-500">Space · Enter — check</p>
           </div>
@@ -314,11 +324,11 @@ export default function Quiz() {
         {phase === 'listening' && (
           <div className="flex flex-col items-center gap-5 animate-fade-up">
             <p className="text-xs text-stone-400 font-medium">Listening for</p>
-            <div className="text-8xl font-black text-stone-600 leading-none tracking-tighter font-mono">
+            <div className="text-8xl font-black text-stone-600 leading-none tracking-tight font-display">
               {target.note}
             </div>
             <div aria-hidden="true" className="flex items-center gap-2 text-stone-500 text-sm -mt-1">
-              <span className="inline-block w-2 h-2 rounded-full bg-teal-400 animate-mic-pulse" />
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-terra-500 animate-mic-pulse" />
               Mic active…
             </div>
             <div
@@ -330,7 +340,7 @@ export default function Quiz() {
               className="w-64 h-2 bg-stone-700 rounded-full overflow-hidden"
             >
               <div
-                className="h-full bg-rose-400 rounded-full"
+                className="h-full bg-terra-400 rounded-full"
                 style={{ width: `${listenProgress * 100}%`, transition: 'none' }}
               />
             </div>
@@ -344,15 +354,15 @@ export default function Quiz() {
         {phase === 'result' && (
           <div className="flex flex-col items-center gap-5 w-full animate-fade-up">
             {micError === 'denied' ? (
-              <div className="w-full rounded-xl border border-stone-600 bg-stone-800/60 px-5 py-4 space-y-3 text-center">
+              <div className="w-full rounded-xl border border-stone-200/10 bg-stone-800/60 px-5 py-4 space-y-3 text-center">
                 <p className="text-stone-200 font-semibold">Mic access was blocked</p>
                 <p className="text-stone-400 text-sm">Check that your browser has microphone permission for this site, then try again.</p>
-                <button
+                <PrimaryButton
+                  size="compact"
                   onClick={() => { setMicError(null); startListening(target) }}
-                  className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white font-bold px-5 py-2 rounded-xl transition-all duration-150 shadow-lg shadow-rose-500/20"
                 >
                   Try again
-                </button>
+                </PrimaryButton>
               </div>
             ) : result && (
               <>
@@ -361,7 +371,7 @@ export default function Quiz() {
                   <div className="text-sm space-y-1">
                     <p>
                       Target:{' '}
-                      <strong className="text-stone-100 text-base font-mono">{target.note}</strong>
+                      <strong className="text-stone-200 text-base font-mono">{target.note}</strong>
                     </p>
                     {result.detectedNote && (
                       <p>
@@ -370,7 +380,7 @@ export default function Quiz() {
                       </p>
                     )}
                     {result.detectedNote === null && (
-                      <div className="bg-stone-700/50 border border-stone-600 rounded-lg px-3 py-2">
+                      <div className="bg-stone-700/50 border border-stone-200/10 rounded-lg px-3 py-2">
                         <p className="text-stone-300 text-sm">Nothing detected — try playing louder, or check mic permissions.</p>
                       </div>
                     )}
@@ -378,34 +388,30 @@ export default function Quiz() {
                 </div>
 
                 <div className="flex gap-3">
-                  <button
+                  <SecondaryButton
                     onClick={hearNote}
                     aria-label={`Hear note ${target.note}`}
-                    className="flex items-center gap-2 bg-stone-700 hover:bg-stone-600
-                      active:scale-95 text-stone-200 font-medium px-4 py-2 rounded-lg transition-all duration-150 text-sm border border-stone-600
-                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400
-                      focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
+                    className="flex items-center gap-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
                   >
                     <svg aria-hidden="true" className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M8 5v14l11-7z" />
                     </svg>
                     Hear {target.note}
-                  </button>
-                  <button
+                  </SecondaryButton>
+                  <PrimaryButton
+                    size="compact"
                     onClick={startRound}
-                    className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
-                      font-bold px-5 py-2 rounded-xl transition-all duration-150 text-sm shadow-lg shadow-rose-500/20
-                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
+                    className="text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-stone-800"
                   >
                     Next note
-                  </button>
+                  </PrimaryButton>
                 </div>
                 <p className="text-xs text-stone-500">Space · Enter — next note</p>
               </>
             )}
           </div>
         )}
-      </div>
+      </PhaseCard>
 
       {/* Fretboard */}
       {(phase === 'listening' || phase === 'result') && (
@@ -419,11 +425,11 @@ export default function Quiz() {
               {result?.detectedNote && result.detectedNote !== target.note && (
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
-                    <div className="w-4 h-4 rounded-full bg-sky-400 ring-1 ring-sky-200/40" />
+                    <div className="w-4 h-4 rounded-full bg-ember-400 ring-1 ring-ember-300/40" />
                     <span>Target ({target.note})</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-4 h-4 rounded-full bg-red-400 ring-1 ring-red-200/40" />
+                    <div className="w-4 h-4 rounded-full bg-brick-400 ring-1 ring-brick-200/40" />
                     <span>Detected ({result.detectedNote})</span>
                   </div>
                 </div>
@@ -440,22 +446,22 @@ export default function Quiz() {
       {/* Stats — shown only once there's data */}
       {stats.total > 0 && (
         <div className="flex items-center gap-3 text-sm flex-wrap animate-fade-up">
-          <div className="bg-stone-800 border border-stone-700 rounded-lg px-4 py-2 flex flex-wrap gap-x-4 gap-y-1 tabular-nums">
+          <StatBadge>
             <span className="text-stone-400">
               Attempts: <span className="text-stone-100 font-semibold">{stats.total}</span>
             </span>
             <span className="text-stone-400">
               Correct:{' '}
-              <span className="text-emerald-400 font-semibold">{stats.correct}</span>
+              <span className="text-sage-400 font-semibold">{stats.correct}</span>
             </span>
             {accuracy !== null && (
               <span className="text-stone-400">
                 Accuracy:{' '}
                 <span
                   className={`font-semibold ${
-                    accuracy >= 80 ? 'text-emerald-400'
-                    : accuracy >= 50 ? 'text-yellow-400'
-                    : 'text-red-400'
+                    accuracy >= 80 ? 'text-sage-400'
+                    : accuracy >= 50 ? 'text-sun-400'
+                    : 'text-brick-400'
                   }`}
                 >
                   {accuracy}%
@@ -464,7 +470,7 @@ export default function Quiz() {
             )}
             {stats.streak > 1 && (
               <span className="text-stone-400">
-                Streak: <span className="text-rose-300 font-semibold">{stats.streak}</span>
+                Streak: <span className="text-terra-300 font-semibold">{stats.streak}</span>
               </span>
             )}
             {stats.bestStreak > 2 && (
@@ -472,13 +478,10 @@ export default function Quiz() {
                 Best: <span className="text-stone-100 font-semibold">{stats.bestStreak}</span>
               </span>
             )}
-          </div>
-          <button
-            onClick={() => setStats({ total: 0, correct: 0, streak: 0, bestStreak: 0 })}
-            className="text-xs text-stone-600 hover:text-stone-400 transition-colors duration-150 px-2 py-1"
-          >
+          </StatBadge>
+          <GhostButton onClick={() => setStats({ total: 0, correct: 0, streak: 0, bestStreak: 0 })}>
             Reset
-          </button>
+          </GhostButton>
         </div>
       )}
 
@@ -499,23 +502,36 @@ export default function Quiz() {
             <p id="summary-title" className="text-[11px] font-medium text-stone-400 tracking-wide">Session checkpoint</p>
             <p className="text-5xl font-black text-stone-100 tabular-nums">{accuracy}%</p>
             <div className="w-full bg-stone-700 rounded-lg px-4 py-3 flex justify-around tabular-nums text-sm">
-              <span className="text-stone-400">Correct: <span className="text-emerald-400 font-semibold">{stats.correct}</span></span>
+              <span className="text-stone-400">Correct: <span className="text-sage-400 font-semibold">{stats.correct}</span></span>
               <span className="text-stone-400">Total: <span className="text-stone-100 font-semibold">{stats.total}</span></span>
               {stats.bestStreak > 1 && (
-                <span className="text-stone-400">Best: <span className="text-rose-300 font-semibold">{stats.bestStreak}</span></span>
+                <span className="text-stone-400">Best: <span className="text-terra-300 font-semibold">{stats.bestStreak}</span></span>
               )}
             </div>
-            <button
+            <PrimaryButton
               ref={keepGoingRef}
-              onClick={() => setShowSummary(false)}
-              className="bg-rose-500 hover:bg-rose-400 active:scale-95 text-white
-                font-bold px-6 py-2.5 rounded-xl transition-all duration-150 shadow-lg shadow-rose-500/20"
+              onClick={() => {
+                const endedAt = new Date().toISOString()
+                const sr = sessionRoundsRef.current
+                recordSession({
+                  page: 'noteTrainer',
+                  startedAt: sessionStartedAtRef.current,
+                  endedAt,
+                  rounds: sr.total,
+                  correct: sr.correct,
+                  bestStreakInSession: sr.bestStreak,
+                  config: {},
+                })
+                sessionStartedAtRef.current = new Date().toISOString()
+                sessionRoundsRef.current = { total: 0, correct: 0, bestStreak: 0 }
+                setShowSummary(false)
+              }}
             >
               Keep going
-            </button>
+            </PrimaryButton>
           </div>
         </div>
       )}
-    </div>
+    </PageWrapper>
   )
 }
