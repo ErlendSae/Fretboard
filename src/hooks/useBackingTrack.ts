@@ -67,6 +67,10 @@ function getInstruments(): Promise<Instruments> {
     instrumentsLoading = Tone.loaded().then(() => {
       instruments = created
       return created
+    }).catch((err) => {
+      // Clear the cached rejection so the next call retries from scratch.
+      instrumentsLoading = null
+      throw err
     })
   }
   return instrumentsLoading
@@ -272,14 +276,18 @@ export function useBackingTrack(root: NoteName, scale: ScaleDef) {
 
   const toggle = useCallback(async () => {
     if (isPlaying) { stop(); return }
+    if (isLoading) return
     await Tone.start()
     setIsLoading(true)
-    const kit = await getInstruments()
-    setIsLoading(false)
-    trackRef.current?.dispose()
-    trackRef.current = startTrack(root, scale, kit, bpm)
-    setIsPlaying(true)
-  }, [isPlaying, root, scale, bpm, stop])
+    try {
+      const kit = await getInstruments()
+      trackRef.current?.dispose()
+      trackRef.current = startTrack(root, scale, kit, bpm)
+      setIsPlaying(true)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [isPlaying, isLoading, root, scale, bpm, stop])
 
   // Restart seamlessly when root/scale changes while playing.
   // Safe to read `instruments` directly here — isPlaying can only be true
