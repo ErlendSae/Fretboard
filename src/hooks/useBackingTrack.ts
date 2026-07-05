@@ -18,75 +18,100 @@ function bpmForScale(scale: ScaleDef): number {
   return 85
 }
 
+export const BPM_MIN = 40
+export const BPM_MAX = 200
+
+// ── Sampled instruments (loaded once, reused forever) ────────────────────────
+//
+// The drum kit and piano are real recordings, so they're expensive to fetch
+// and decode. We create each Sampler exactly once at module scope and never
+// dispose it — starting/stopping the track only tears down the per-start
+// effect chain and sequences, never the underlying samplers.
+
+const PIANO_NOTES = [
+  'A1', 'C2', 'D#2', 'F#2', 'A2', 'C3', 'D#3', 'F#3',
+  'A3', 'C4', 'D#4', 'F#4', 'A4', 'C5', 'D#5', 'F#5', 'A5',
+] as const
+
+// Salamander file names swap "#" for "s" (e.g. "D#4" → "Ds4.mp3").
+const PIANO_URLS: Record<string, string> = Object.fromEntries(
+  PIANO_NOTES.map(note => [note, `${note.replace('#', 's')}.mp3`]),
+)
+
+interface Instruments {
+  kick: Tone.Sampler
+  snare: Tone.Sampler
+  hihat: Tone.Sampler
+  tom: Tone.Sampler
+  piano: Tone.Sampler
+}
+
+let instruments: Instruments | null = null
+let instrumentsLoading: Promise<Instruments> | null = null
+
+function createInstruments(): Instruments {
+  return {
+    kick:  new Tone.Sampler({ urls: { C1: 'kick.mp3' },  baseUrl: '/samples/drums/' }),
+    snare: new Tone.Sampler({ urls: { C1: 'snare.mp3' }, baseUrl: '/samples/drums/' }),
+    hihat: new Tone.Sampler({ urls: { C1: 'hihat.mp3' }, baseUrl: '/samples/drums/' }),
+    tom:   new Tone.Sampler({ urls: { C1: 'tom1.mp3' },  baseUrl: '/samples/drums/' }),
+    piano: new Tone.Sampler({ urls: PIANO_URLS, baseUrl: '/samples/piano/', release: 1 }),
+  }
+}
+
+/** Lazily create + load the sample instruments exactly once, however many times this is called. */
+function getInstruments(): Promise<Instruments> {
+  if (instruments) return Promise.resolve(instruments)
+  if (!instrumentsLoading) {
+    const created = createInstruments()
+    instrumentsLoading = Tone.loaded().then(() => {
+      instruments = created
+      return created
+    })
+  }
+  return instrumentsLoading
+}
+
 interface TrackHandle {
   dispose: () => void
 }
 
-function startTrack(root: NoteName, scale: ScaleDef): TrackHandle {
+function startTrack(root: NoteName, scale: ScaleDef, kit: Instruments, bpm: number): TrackHandle {
   const transport = Tone.getTransport()
   transport.stop()
   transport.cancel(0)
   transport.position = 0
-  transport.bpm.value = bpmForScale(scale)
+  transport.bpm.value = bpm
 
   // ── Master bus ───────────────────────────────────────────────────────────────
   const masterComp = new Tone.Compressor({
     threshold: -18, ratio: 4, attack: 0.003, release: 0.15,
   }).toDestination()
 
-  // ── Kick ─────────────────────────────────────────────────────────────────────
-  // Subtle distortion adds a punchy click transient
-  const kickDist = new Tone.Distortion(0.08).connect(masterComp)
-  const kick = new Tone.MembraneSynth({
-    pitchDecay: 0.07,
-    octaves: 6,
-    envelope: { attack: 0.001, decay: 0.45, sustain: 0, release: 0.1 },
-  }).connect(kickDist)
-  kick.volume.value = 4
-
-  // ── Snare (layered: body + high-passed crack) ────────────────────────────────
-  const snareBody = new Tone.NoiseSynth({
-    noise: { type: 'white' },
-    envelope: { attack: 0.001, decay: 0.12, sustain: 0, release: 0.03 },
-  }).connect(masterComp)
-  snareBody.volume.value = -7
-
-  const snareHpf = new Tone.Filter({ frequency: 2500, type: 'highpass' }).connect(masterComp)
-  const snareCrack = new Tone.NoiseSynth({
-    noise: { type: 'white' },
-    envelope: { attack: 0.001, decay: 0.05, sustain: 0, release: 0.01 },
-  }).connect(snareHpf)
-  snareCrack.volume.value = -11
-
-  // ── Hi-hat (MetalSynth for authentic metallic tone) ──────────────────────────
-  const hihat = new Tone.MetalSynth({
-    envelope: { attack: 0.001, decay: 0.08, release: 0.01 },
-    harmonicity: 5.1,
-    modulationIndex: 32,
-    resonance: 4000,
-    octaves: 1.5,
-  }).connect(masterComp)
-  hihat.frequency.value = 400
-  hihat.volume.value = -20
+  // ── Drums (real kit, routed straight to the bus) ─────────────────────────────
+  kit.kick.connect(masterComp)
+  kit.kick.volume.value = 0
+  kit.snare.connect(masterComp)
+  kit.snare.volume.value = -2
+  kit.hihat.connect(masterComp)
+  kit.hihat.volume.value = -16
+  kit.tom.connect(masterComp)
+  kit.tom.volume.value = -8
 
   // ── Bass (sawtooth → drive → lowpass → master) ───────────────────────────────
+  // Distortion trimmed back a touch so it sits under the real drums/piano.
   const bassLpf = new Tone.Filter({ frequency: 800, type: 'lowpass', rolloff: -24 }).connect(masterComp)
-  const bassDrive = new Tone.Distortion(0.12).connect(bassLpf)
+  const bassDrive = new Tone.Distortion(0.08).connect(bassLpf)
   const bass = new Tone.Synth({
     oscillator: { type: 'sawtooth' },
     envelope: { attack: 0.01, decay: 0.2, sustain: 0.5, release: 0.4 },
   }).connect(bassDrive)
-  bass.volume.value = -3
+  bass.volume.value = -4
 
-  // ── Pad (triangle PolySynth → chorus → Freeverb → master) ───────────────────
-  const padVerb = new Tone.Freeverb({ roomSize: 0.75, dampening: 2500, wet: 0.35 }).connect(masterComp)
-  const padChorus = new Tone.Chorus({ frequency: 3, delayTime: 2.5, depth: 0.5, wet: 0.4 }).connect(padVerb)
-  padChorus.start()
-  const pad = new Tone.PolySynth(Tone.Synth, {
-    oscillator: { type: 'triangle' },
-    envelope: { attack: 0.5, decay: 0.5, sustain: 0.8, release: 3 },
-  }).connect(padChorus)
-  pad.volume.value = -14
+  // ── Piano (sampled grand → light room verb → master) ─────────────────────────
+  const pianoVerb = new Tone.Freeverb({ roomSize: 0.7, dampening: 3000, wet: 0.2 }).connect(masterComp)
+  kit.piano.connect(pianoVerb)
+  kit.piano.volume.value = -3
 
   // ── Scale-derived notes ──────────────────────────────────────────────────────
   const fifth   = scale.intervals[4] ?? 7
@@ -105,7 +130,8 @@ function startTrack(root: NoteName, scale: ScaleDef): TrackHandle {
     noteAt(root, fifth,   2),
   ]
 
-  // Pad voicing: add 7th on scales that have one (gives jazz/full-band color)
+  // Piano voicing: add 7th on scales that have one (gives jazz/full-band color).
+  // Voiced around octave 3–4, where the sampled grand is strongest.
   const chord: string[] = [
     noteAt(root, 0,       3),
     noteAt(root, third,   3),
@@ -118,13 +144,12 @@ function startTrack(root: NoteName, scale: ScaleDef): TrackHandle {
 
   const triggerSnare = (time: number) => {
     const vel = 0.7 + Math.random() * 0.3
-    snareBody.triggerAttackRelease('8n',  time, vel)
-    snareCrack.triggerAttackRelease('16n', time, vel * 0.65)
+    kit.snare.triggerAttack('C1', time, vel)
   }
 
   // Kick: beats 1 and 3
   const kickSeq = new Tone.Sequence<S>(
-    (time) => kick.triggerAttackRelease('C1', '8n', time),
+    (time) => kit.kick.triggerAttack('C1', time),
     ['x', null, null, null, null, null, null, null, 'x', null, null, null, null, null, null, null],
     '16n',
   )
@@ -138,8 +163,18 @@ function startTrack(root: NoteName, scale: ScaleDef): TrackHandle {
 
   // Hi-hat: every 8th note, with velocity humanization
   const hihatSeq = new Tone.Sequence<S>(
-    (time) => hihat.triggerAttackRelease('16n', time, 0.25 + Math.random() * 0.35),
+    (time) => kit.hihat.triggerAttack('C1', time, 0.25 + Math.random() * 0.35),
     ['x', null, 'x', null, 'x', null, 'x', null, 'x', null, 'x', null, 'x', null, 'x', null],
+    '16n',
+  )
+
+  // Tom: a small two-note pickup fill on the last beat of the 2-bar loop
+  const tomFill: S[] = new Array(32).fill(null)
+  tomFill[28] = 'x'
+  tomFill[30] = 'x'
+  const tomSeq = new Tone.Sequence<S>(
+    (time) => kit.tom.triggerAttack('C1', time, 0.3 + Math.random() * 0.15),
+    tomFill,
     '16n',
   )
 
@@ -150,18 +185,26 @@ function startTrack(root: NoteName, scale: ScaleDef): TrackHandle {
     '4n',
   )
 
-  // Pad: whole-note chord, once per bar
-  const padSeq = new Tone.Sequence<S>(
-    (time) => pad.triggerAttackRelease(chord, '1m', time),
-    ['x'],
-    '1m',
+  // Piano: relaxed comping — chord held on beat 1, a shorter stab on the "and" of beat 2
+  type PianoHit = 'chord' | 'stab' | null
+  const pianoSeq = new Tone.Sequence<PianoHit>(
+    (time, hit) => {
+      if (hit === 'chord') {
+        kit.piano.triggerAttackRelease(chord, '2n', time, 0.78 + Math.random() * 0.12)
+      } else if (hit === 'stab') {
+        kit.piano.triggerAttackRelease(chord, '8n', time, 0.55 + Math.random() * 0.15)
+      }
+    },
+    ['chord', null, null, null, null, null, 'stab', null, null, null, null, null, null, null, null, null],
+    '16n',
   )
 
   kickSeq.start(0)
   snareSeq.start(0)
   hihatSeq.start(0)
+  tomSeq.start(0)
   bassSeq.start(0)
-  padSeq.start(0)
+  pianoSeq.start(0)
 
   transport.start()
 
@@ -172,20 +215,27 @@ function startTrack(root: NoteName, scale: ScaleDef): TrackHandle {
       kickSeq.dispose()
       snareSeq.dispose()
       hihatSeq.dispose()
+      tomSeq.dispose()
       bassSeq.dispose()
-      padSeq.dispose()
-      kick.dispose()
-      kickDist.dispose()
-      snareBody.dispose()
-      snareCrack.dispose()
-      snareHpf.dispose()
-      hihat.dispose()
+      pianoSeq.dispose()
+
+      // Detach the persistent samplers from this start's chain and cut any
+      // ringing notes — but never dispose the samplers themselves.
+      kit.kick.disconnect()
+      kit.snare.disconnect()
+      kit.hihat.disconnect()
+      kit.tom.disconnect()
+      kit.piano.disconnect()
+      kit.kick.releaseAll()
+      kit.snare.releaseAll()
+      kit.hihat.releaseAll()
+      kit.tom.releaseAll()
+      kit.piano.releaseAll()
+
       bass.dispose()
       bassDrive.dispose()
       bassLpf.dispose()
-      pad.dispose()
-      padChorus.dispose()
-      padVerb.dispose()
+      pianoVerb.dispose()
       masterComp.dispose()
     },
   }
@@ -193,7 +243,26 @@ function startTrack(root: NoteName, scale: ScaleDef): TrackHandle {
 
 export function useBackingTrack(root: NoteName, scale: ScaleDef) {
   const [isPlaying, setIsPlaying] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [bpm, setBpmState] = useState(() => bpmForScale(scale))
   const trackRef = useRef<TrackHandle | null>(null)
+
+  // Scale change resets tempo to the new genre default. Done as a render-time
+  // adjustment (not an effect) so the restart effect below already sees the
+  // fresh value when it fires.
+  const [prevScale, setPrevScale] = useState(scale)
+  if (scale !== prevScale) {
+    setPrevScale(scale)
+    setBpmState(bpmForScale(scale))
+  }
+
+  const setBpm = useCallback((next: number) => {
+    const clamped = Math.min(BPM_MAX, Math.max(BPM_MIN, next))
+    setBpmState(clamped)
+    // Ramp instead of jump so a live tempo change sounds like the band
+    // speeding up. Harmless when stopped — startTrack overwrites it.
+    Tone.getTransport().bpm.rampTo(clamped, 0.2)
+  }, [])
 
   const stop = useCallback(() => {
     trackRef.current?.dispose()
@@ -204,21 +273,30 @@ export function useBackingTrack(root: NoteName, scale: ScaleDef) {
   const toggle = useCallback(async () => {
     if (isPlaying) { stop(); return }
     await Tone.start()
+    setIsLoading(true)
+    const kit = await getInstruments()
+    setIsLoading(false)
     trackRef.current?.dispose()
-    trackRef.current = startTrack(root, scale)
+    trackRef.current = startTrack(root, scale, kit, bpm)
     setIsPlaying(true)
-  }, [isPlaying, root, scale, stop])
+  }, [isPlaying, root, scale, bpm, stop])
 
-  // Restart seamlessly when root/scale changes while playing
+  // Restart seamlessly when root/scale changes while playing.
+  // Safe to read `instruments` directly here — isPlaying can only be true
+  // once toggle() has already awaited getInstruments(). `bpm` is read from
+  // the closure, not the deps: a bpm change alone must NOT restart the
+  // track (setBpm ramps the live transport instead), and on scale change
+  // the render-time reset above guarantees this closure sees the new
+  // genre default.
   useEffect(() => {
-    if (!isPlaying) return
+    if (!isPlaying || !instruments) return
     trackRef.current?.dispose()
-    trackRef.current = startTrack(root, scale)
+    trackRef.current = startTrack(root, scale, instruments, bpm)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [root, scale])
 
   // Cleanup on unmount
   useEffect(() => () => { trackRef.current?.dispose() }, [])
 
-  return { isPlaying, toggle, bpm: bpmForScale(scale) }
+  return { isPlaying, isLoading, toggle, bpm, setBpm }
 }
