@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import Fretboard, { type FretMarker } from '../components/Fretboard'
+import BackingTrackPanel from '../components/BackingTrackPanel'
 import {
   ControlLabel,
   InfoCard,
@@ -33,7 +34,7 @@ export default function Explorer() {
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const scale = SCALES[scaleIdx]!
-  const { isPlaying, toggle, bpm } = useBackingTrack(root, scale)
+  const { isPlaying, isLoading, toggle, bpm, setBpm } = useBackingTrack(root, scale)
 
   // Spacebar → play/pause. Use a ref so the listener never goes stale.
   const toggleRef = useRef(toggle)
@@ -191,53 +192,14 @@ export default function Explorer() {
 
   // Backing track JSX — used in both sidebar and bottom sheet
   const backingTrackContent = (
-    <div className="shrink-0 border-t border-stone-200/10 pt-4 space-y-2">
-      <div className={`flex items-center justify-between gap-3 p-3.5 rounded-xl transition-all duration-200
-        ${isPlaying
-          ? 'bg-sun-500/10 border border-sun-500/30'
-          : 'bg-sun-500/5 border border-sun-500/15 hover:border-sun-500/25'
-        }`}
-      >
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold text-stone-500 tracking-[0.08em] uppercase">Backing track</p>
-          <p className="font-mono text-[13px] text-stone-300 mt-0.5 truncate">
-            {root} {scale.name}
-            <span className="text-stone-500"> · {bpm} BPM</span>
-          </p>
-        </div>
-        <button
-          onClick={toggle}
-          aria-label={isPlaying ? 'Stop backing track' : 'Play backing track'}
-          aria-pressed={isPlaying}
-          className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center
-            transition-all duration-150 active:scale-95
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-950
-            ${isPlaying ? 'bg-terra-600 text-stone-200' : 'bg-terra-500 text-stone-200 hover:bg-terra-400'}`}
-        >
-          <span aria-hidden="true" className="text-[13px] leading-none">{isPlaying ? '◼' : '▶'}</span>
-        </button>
-      </div>
-
-      {!isPlaying && (
-        <p className="text-center text-xs text-stone-500">Space to play</p>
-      )}
-
-      <div
-        aria-hidden="true"
-        className={`flex justify-center items-center gap-2.5 h-3 transition-opacity duration-300 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
-      >
-        {[0, 1, 2, 3].map((i) => {
-          const beatMs = Math.round(60000 / bpm)
-          return (
-            <span
-              key={i}
-              className="w-1.5 h-1.5 rounded-full bg-sun-400/70"
-              style={{ animation: isPlaying ? `beatDot ${beatMs * 4}ms linear ${i * beatMs}ms infinite` : 'none' }}
-            />
-          )
-        })}
-      </div>
-    </div>
+    <BackingTrackPanel
+      label={`${root} ${scale.name}`}
+      isPlaying={isPlaying}
+      isLoading={isLoading}
+      toggle={toggle}
+      bpm={bpm}
+      setBpm={setBpm}
+    />
   )
 
   return (
