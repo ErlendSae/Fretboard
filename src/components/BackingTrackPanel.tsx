@@ -31,32 +31,22 @@ export default function BackingTrackPanel({
   const holdTimer = useRef<number | null>(null)
   const holdInterval = useRef<number | null>(null)
 
-  // Using a mutable ref to avoid listener cleanup issues
-  const stopHoldRef = useRef<(() => void) | null>(null)
-
   const stopHold = useCallback(() => {
     if (holdTimer.current !== null) { window.clearTimeout(holdTimer.current); holdTimer.current = null }
     if (holdInterval.current !== null) { window.clearInterval(holdInterval.current); holdInterval.current = null }
-    if (stopHoldRef.current) {
-      window.removeEventListener('pointerup', stopHoldRef.current)
-      window.removeEventListener('pointercancel', stopHoldRef.current)
-    }
+    window.removeEventListener('pointerup', stopHold)
+    window.removeEventListener('pointercancel', stopHold)
   }, [])
 
-  useEffect(() => {
-    stopHoldRef.current = stopHold
-    return stopHold
-  }, [stopHold])
+  useEffect(() => stopHold, [stopHold])
 
   const startHold = (delta: number) => {
     stopHold()
     setBpm(bpmRef.current + delta)
     // A button that hits its clamp becomes disabled and stops firing pointer
     // events, so the release is caught at the window level instead.
-    if (stopHoldRef.current) {
-      window.addEventListener('pointerup', stopHoldRef.current)
-      window.addEventListener('pointercancel', stopHoldRef.current)
-    }
+    window.addEventListener('pointerup', stopHold)
+    window.addEventListener('pointercancel', stopHold)
     holdTimer.current = window.setTimeout(() => {
       holdInterval.current = window.setInterval(
         () => setBpm(bpmRef.current + delta),
@@ -103,7 +93,7 @@ export default function BackingTrackPanel({
           <button
             disabled={bpm <= BPM_MIN}
             aria-label="Slower"
-            onPointerDown={() => startHold(-BPM_STEP)}
+            onPointerDown={(e) => { if (e.button !== 0) return; startHold(-BPM_STEP) }}
             onClick={(e) => { if (e.detail === 0) setBpm(bpm - BPM_STEP) }}
             className={stepButtonClass}
           >
@@ -115,7 +105,7 @@ export default function BackingTrackPanel({
           <button
             disabled={bpm >= BPM_MAX}
             aria-label="Faster"
-            onPointerDown={() => startHold(BPM_STEP)}
+            onPointerDown={(e) => { if (e.button !== 0) return; startHold(BPM_STEP) }}
             onClick={(e) => { if (e.detail === 0) setBpm(bpm + BPM_STEP) }}
             className={stepButtonClass}
           >
