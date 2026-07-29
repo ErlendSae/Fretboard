@@ -132,6 +132,74 @@ export const SONGS: readonly Song[] = [
     chords: [{ degree: 0 }, { degree: 3 }, { degree: 4 }],
     note: 'I–IV–V, three bars, as simple as it gets. Major pentatonic and you cannot go wrong.',
   },
+  {
+    title: 'Cliffs of Dover', artist: 'Eric Johnson',
+    root: 'G', scaleName: 'Major (Ionian)', genre: 'Instrumental rock', bpm: 156,
+    chords: [{ degree: 0 }, { degree: 3 }, { degree: 4 }, { degree: 5 }],
+    note: 'Approximated, not transcribed — the real thing opens with an unaccompanied cadenza and moves faster than one chord per bar. This is a G major I–IV–V–vi loop at tempo to practise the vocabulary over. Johnson lives in G major pentatonic with plenty of open-string ringing.',
+  },
+  {
+    title: 'Sweet Child O’ Mine', artist: 'Guns N’ Roses',
+    root: 'D', scaleName: 'Mixolydian', genre: 'Rock', bpm: 128,
+    chords: [{ degree: 0 }, { degree: 6 }, { degree: 3 }, { degree: 0 }],
+    note: 'D–C–G–D. The C is a flat seventh, which is what makes this Mixolydian rather than plain D major — that one note is why the riff sounds like it does.',
+  },
+  {
+    title: 'Autumn Leaves', artist: 'Jazz standard',
+    root: 'G', scaleName: 'Natural Minor (Aeolian)', genre: 'Jazz', bpm: 120,
+    chords: [
+      { degree: 3, quality: 'minor7' },     // Cm7    iv7
+      { degree: 6, quality: 'dominant7' },  // F7     VII7
+      { degree: 2, quality: 'major7' },     // Bbmaj7 IIImaj7
+      { degree: 5, quality: 'major7' },     // Ebmaj7 VImaj7
+      { degree: 1, quality: 'minor7b5' },   // Am7b5  ii ø7
+      { degree: 4, quality: 'dominant7' },  // D7     V7 — borrowed major
+      { degree: 0, quality: 'minor7', bars: 2 }, // Gm7  i7
+    ],
+    note: 'The first eight bars. Two ii–V–I cadences back to back, one landing in the relative major and one in the minor home key. The D7 is borrowed — its third is outside the key and is the note that pulls you home.',
+  },
+  {
+    title: 'Little Wing', artist: 'Jimi Hendrix',
+    root: 'E', scaleName: 'Natural Minor (Aeolian)', genre: 'Blues rock', bpm: 68,
+    chords: [{ degree: 0 }, { degree: 2 }, { degree: 3 }, { degree: 0 }],
+    note: 'Simplified to the main vamp; the real intro wanders further. Slow enough that you can hear every note, which makes it a good one for phrasing rather than speed.',
+  },
+  {
+    title: 'Comfortably Numb', artist: 'Pink Floyd',
+    root: 'B', scaleName: 'Natural Minor (Aeolian)', genre: 'Prog rock', bpm: 63,
+    chords: [{ degree: 0 }, { degree: 6 }, { degree: 5 }, { degree: 6 }],
+    note: 'The outro solo loop. Same three chords as Watchtower but half the tempo — all the room in the world to bend and hold notes rather than fill every bar.',
+  },
+  {
+    title: 'Paranoid', artist: 'Black Sabbath',
+    root: 'E', scaleName: 'Natural Minor (Aeolian)', genre: 'Metal', bpm: 164,
+    chords: [{ degree: 0, bars: 2 }, { degree: 6 }, { degree: 0 }],
+    note: 'Riff-driven, so the harmony barely moves — i and VII. Fast, and the minor pentatonic covers all of it, which is the point: speed with a small vocabulary.',
+  },
+  {
+    title: 'Smells Like Teen Spirit', artist: 'Nirvana',
+    root: 'F', scaleName: 'Natural Minor (Aeolian)', genre: 'Grunge', bpm: 117,
+    chords: [{ degree: 0 }, { degree: 3 }, { degree: 2 }, { degree: 5 }],
+    note: 'Four power chords, i–iv–III–VI, round and round. The solo is close to the vocal melody rather than a scale run — worth trying that approach here.',
+  },
+  {
+    title: 'Redemption Song', artist: 'Bob Marley',
+    root: 'G', scaleName: 'Major (Ionian)', genre: 'Reggae', bpm: 76,
+    chords: [{ degree: 0 }, { degree: 5 }, { degree: 3 }, { degree: 0 }],
+    note: 'I–vi–IV–I, gentle and open. Major pentatonic, and leave space — the gaps are as much of the feel as the notes.',
+  },
+  {
+    title: 'Ring of Fire', artist: 'Johnny Cash',
+    root: 'G', scaleName: 'Major (Ionian)', genre: 'Country', bpm: 108,
+    chords: [{ degree: 0, bars: 2 }, { degree: 3 }, { degree: 0 }, { degree: 4 }, { degree: 3 }, { degree: 0, bars: 2 }],
+    note: 'I–IV–I–V–IV–I. Country phrasing leans on the major third and the sixth rather than the blues notes — try major pentatonic before you reach for minor.',
+  },
+  {
+    title: 'Get Lucky', artist: 'Daft Punk',
+    root: 'B', scaleName: 'Natural Minor (Aeolian)', genre: 'Funk-pop', bpm: 116,
+    chords: [{ degree: 0, quality: 'minor7' }, { degree: 2 }, { degree: 4, quality: 'minor7' }, { degree: 3 }],
+    note: 'A four-bar loop that never resolves, which is why it can run forever. Minor 7ths and a steady sixteenth-note right hand matter more here than what you pick.',
+  },
 ]
 
 export interface ResolvedSong {
