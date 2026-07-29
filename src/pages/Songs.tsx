@@ -7,13 +7,13 @@ import NeckPageLayout from '../components/NeckPageLayout'
 import SongPicker from '../components/SongPicker'
 import { ControlLabel } from '../components/ui'
 import { buildScaleMarkers } from '../utils/scaleMarkers'
-import { SONGS, resolveSong, shortKeyLabel } from '../utils/songs'
+import { SONGS_BY_STYLE, resolveSong, shortKeyLabel } from '../utils/songs'
 import { useBackingTrack } from '../hooks/useBackingTrack'
 import { useSpacebarToggle } from '../hooks/useSpacebarToggle'
 
 // A song with a mistyped scale name can't resolve, so drop it from the list
 // rather than render it broken.
-const PLAYABLE = SONGS.filter(s => resolveSong(s) !== null)
+const PLAYABLE = SONGS_BY_STYLE.filter(s => resolveSong(s) !== null)
 
 export default function Songs() {
   const [songIdx, setSongIdx] = useState(0)

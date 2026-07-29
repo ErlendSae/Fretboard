@@ -215,6 +215,33 @@ export const SONGS: readonly Song[] = [
 ]
 
 /**
+ * Genre display order, grouped into broad families. The picker shows one flat
+ * grid rather than a heading per genre — there are more genres than songs per
+ * genre — so this ordering is what puts related styles next to each other.
+ */
+const GENRE_ORDER: readonly string[] = [
+  'Blues', 'Blues rock',
+  'Rock', 'Classic rock', 'Southern rock', 'Prog rock', 'Instrumental rock',
+  'Metal', 'Grunge',
+  'Soul', 'Funk rock', 'Funk',
+  'Latin rock', 'Latin', 'Jazz', 'Jazz rock',
+  "Rock'n'roll", 'Reggae', 'Country',
+]
+
+/** Unknown genres sort to the end rather than to the front. */
+function genreRank(genre: string): number {
+  const i = GENRE_ORDER.indexOf(genre)
+  return i === -1 ? GENRE_ORDER.length : i
+}
+
+/**
+ * SONGS with related styles adjacent. Array.prototype.sort is stable, so songs
+ * sharing a genre keep their declaration order.
+ */
+export const SONGS_BY_STYLE: readonly Song[] =
+  [...SONGS].sort((a, b) => genreRank(a.genre) - genreRank(b.genre))
+
+/**
  * Short key label for display, e.g. "A minor", "D Mixolydian".
  * The full scale names are too long for a card.
  */

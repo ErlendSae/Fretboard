@@ -39,7 +39,9 @@ export default function NeckPageLayout({
       </aside>
 
       {/* ── Main content ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-w-0 overflow-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      {/* pb-20 below md keeps the last row clear of the floating Controls
+          button, which sits above the bottom tab bar. */}
+      <div className="flex-1 min-w-0 overflow-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-20 md:pb-6 space-y-4 sm:space-y-6">
         <div className="animate-fade-up">
           <h1 className="font-display font-semibold text-stone-200 text-[2.375rem] leading-[1.05] tracking-[-0.02em]">
             {title}
@@ -53,8 +55,11 @@ export default function NeckPageLayout({
       <button
         onClick={() => setSheetOpen(true)}
         aria-label="Open controls"
+        // Floats over the page content, so it needs a shadow and an opaque fill
+        // to read as "above" rather than colliding with the cards underneath.
         className="fixed bottom-[4.5rem] left-4 z-40 md:hidden flex items-center gap-1.5
-          bg-stone-800 border border-stone-200/10 text-stone-300 text-sm px-3 py-1.5 rounded-full
+          bg-stone-950/95 backdrop-blur border border-stone-200/20 text-stone-200 text-sm px-3.5 py-2 rounded-full
+          shadow-lg shadow-black/60
           active:scale-95 transition-transform duration-100"
       >
         <SlidersHorizontal size={14} strokeWidth={1.5} aria-hidden="true" />

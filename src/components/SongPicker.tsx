@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react'
 import { shortKeyLabel, type Song } from '../utils/songs'
 
 interface SongPickerProps {
@@ -6,76 +7,91 @@ interface SongPickerProps {
   onSelect: (index: number) => void
 }
 
-/** Group songs by genre, keeping each one's index into the original array. */
-function byGenre(songs: readonly Song[]) {
-  const lanes: Array<{ genre: string; entries: Array<{ song: Song; index: number }> }> = []
-  songs.forEach((song, index) => {
-    const lane = lanes.find(l => l.genre === song.genre)
-    if (lane) lane.entries.push({ song, index })
-    else lanes.push({ genre: song.genre, entries: [{ song, index }] })
-  })
-  return lanes
-}
-
 /**
- * The song chooser: every song visible at once as a card, grouped by genre.
- * Lives below the neck because choosing what to play over is the main thing
- * you do on this page.
+ * The song chooser: every song as a card in one flat grid.
+ *
+ * Deliberately NOT grouped by genre — there are 16 genres across 24 songs, so
+ * headings produced ten sections of a single card each, every one left-aligned
+ * against three empty columns. The genre rides on the card instead, and SONGS
+ * is ordered so related styles sit together.
  */
 export default function SongPicker({ songs, selectedIndex, onSelect }: SongPickerProps) {
   return (
-    <div className="space-y-5">
-      <p className="text-[11px] font-semibold text-stone-500 tracking-[0.12em] uppercase">
-        Choose a song
-      </p>
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between gap-4">
+        <h2
+          id="song-picker-label"
+          className="text-[11px] font-semibold text-stone-500 tracking-[0.12em] uppercase"
+        >
+          Choose a song
+        </h2>
+        <span className="text-[11px] text-stone-600">{songs.length} songs</span>
+      </div>
 
-      {byGenre(songs).map(({ genre, entries }) => (
-        <div key={genre} className="space-y-2">
-          <h2 className="text-[11px] font-medium text-stone-600 tracking-[0.08em] uppercase">
-            {genre}
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-            {entries.map(({ song, index }) => {
-              const isActive = index === selectedIndex
-              return (
-                <button
-                  key={song.title}
-                  onClick={() => onSelect(index)}
-                  aria-current={isActive ? 'true' : undefined}
-                  // The song's "what to listen for" note lives here rather than
-                  // taking up the page.
-                  title={song.note}
-                  className={`text-left px-3 py-2.5 rounded-xl border min-h-[68px]
-                    flex flex-col gap-0.5
-                    transition-all duration-150 active:scale-95
-                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500
-                    focus-visible:ring-offset-1 focus-visible:ring-offset-stone-950
+      <div
+        role="radiogroup"
+        aria-labelledby="song-picker-label"
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2"
+      >
+        {songs.map((song, index) => {
+          const isActive = index === selectedIndex
+          return (
+            <button
+              key={song.title}
+              role="radio"
+              aria-checked={isActive}
+              onClick={() => onSelect(index)}
+              // The song's "what to listen for" note lives here rather than
+              // taking up a block of the page.
+              title={song.note}
+              className={`group relative text-left pl-3 pr-7 py-2.5 rounded-xl border
+                transition-all duration-150 active:scale-95
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500
+                focus-visible:ring-offset-1 focus-visible:ring-offset-stone-950
+                ${isActive
+                  ? 'bg-terra-500 border-terra-400'
+                  : 'bg-stone-800/50 border-stone-200/[0.07] hover:border-stone-200/20 hover:bg-stone-800'
+                }`}
+            >
+              {isActive && (
+                <Check
+                  size={13}
+                  strokeWidth={1.5}
+                  aria-hidden="true"
+                  className="absolute top-2.5 right-2.5 text-stone-100"
+                />
+              )}
+
+              <p className={`text-[13px] font-semibold leading-tight truncate
+                ${isActive ? 'text-stone-100' : 'text-stone-200'}`}
+              >
+                {song.title}
+              </p>
+              <p className={`text-[11px] leading-tight truncate mt-0.5
+                ${isActive ? 'text-terra-100' : 'text-stone-500'}`}
+              >
+                {song.artist}
+              </p>
+              <p className="flex items-center gap-1.5 mt-1.5 min-w-0">
+                <span className={`font-mono text-[10px] leading-none truncate
+                  ${isActive ? 'text-terra-100/90' : 'text-stone-500'}`}
+                >
+                  {shortKeyLabel(song)}
+                </span>
+                <span
+                  className={`text-[9px] leading-none px-1.5 py-0.5 rounded shrink-0 uppercase tracking-wide
                     ${isActive
-                      ? 'bg-terra-500 border-terra-400'
-                      : 'bg-stone-800 border-stone-200/10 hover:border-stone-200/25 hover:bg-stone-800/70'
+                      ? 'bg-stone-900/25 text-terra-100'
+                      : 'bg-stone-200/[0.06] text-stone-500'
                     }`}
                 >
-                  <span className={`text-[13px] font-semibold leading-tight
-                    ${isActive ? 'text-stone-100' : 'text-stone-200'}`}
-                  >
-                    {song.title}
-                  </span>
-                  <span className={`text-[11px] leading-tight
-                    ${isActive ? 'text-terra-100' : 'text-stone-500'}`}
-                  >
-                    {song.artist}
-                  </span>
-                  <span className={`font-mono text-[10px] leading-tight mt-auto
-                    ${isActive ? 'text-terra-100/80' : 'text-stone-600'}`}
-                  >
-                    {shortKeyLabel(song)}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
+                  {song.genre}
+                </span>
+              </p>
+            </button>
+          )
+        })}
+      </div>
+    </section>
   )
 }
