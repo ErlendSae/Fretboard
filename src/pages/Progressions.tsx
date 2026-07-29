@@ -64,7 +64,7 @@ export default function Progressions() {
   const presets = PROGRESSION_PRESETS.filter(p => p.tonality === tonality)
 
   const activeChordDegrees: Set<number> = activePreset !== null && presets[activePreset]
-    ? new Set(presets[activePreset]!.degrees)
+    ? new Set(presets[activePreset]!.chords.map(c => c.degree))
     : new Set()
 
   // ── Playback ──────────────────────────────────────────────────────────────
@@ -79,7 +79,8 @@ export default function Progressions() {
     if (!chords || activePreset === null || !presets[activePreset]) return
     stopPlayback()
 
-    const degrees = [...presets[activePreset]!.degrees]
+    // One step per chord, not per bar — this page teaches chord order, not song form.
+    const degrees = presets[activePreset]!.chords.map(c => c.degree)
     const chordsSnap = [...chords]
     let step = 0
 
@@ -115,7 +116,7 @@ export default function Progressions() {
     const next = activePreset === idx ? null : idx
     setActivePreset(next)
     if (next !== null && chords && presets[next]) {
-      const firstDegree = presets[next]!.degrees[0]!
+      const firstDegree = presets[next]!.chords[0]!.degree
       setSelectedDegree(firstDegree)
       const firstChord = chords[firstDegree]
       if (firstChord) strumChord(firstChord.notes)
@@ -286,7 +287,7 @@ export default function Progressions() {
 
               <div className="space-y-1">
                 {presets.map((preset, i) => {
-                  const presetChords = preset.degrees.map(d => chords[d]).filter(Boolean) as DiatonicChord[]
+                  const presetChords = preset.chords.map(c => chords[c.degree]).filter(Boolean) as DiatonicChord[]
                   const isActive = activePreset === i
                   return (
                     <button
@@ -316,7 +317,7 @@ export default function Progressions() {
                 <div className="mt-3 pl-3 border-l-2 border-stone-700 space-y-2">
                   {isPlaying && (
                     <div className="flex gap-2">
-                      {currentPreset.degrees.map((d, si) => (
+                      {currentPreset.chords.map(({ degree: d }, si) => (
                         <span
                           key={si}
                           className={`font-mono text-xs font-bold transition-colors duration-150 ${
