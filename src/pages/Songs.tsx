@@ -6,7 +6,7 @@ import FretboardLegend from '../components/FretboardLegend'
 import NeckPageLayout from '../components/NeckPageLayout'
 import { ControlLabel, LabeledField, SelectInput } from '../components/ui'
 import { buildScaleMarkers } from '../utils/scaleMarkers'
-import { SONGS, resolveSong } from '../utils/songs'
+import { SONGS, resolveSong, type Song } from '../utils/songs'
 import { getCagedFretRange, CAGED_SHAPES, type CagedShape } from '../utils/caged'
 import { useBackingTrack } from '../hooks/useBackingTrack'
 import { useSpacebarToggle } from '../hooks/useSpacebarToggle'
@@ -14,6 +14,15 @@ import { useSpacebarToggle } from '../hooks/useSpacebarToggle'
 // A song with a mistyped scale name can't resolve, so drop it from the list
 // rather than render it broken.
 const PLAYABLE = SONGS.filter(s => resolveSong(s) !== null)
+
+// Grouped for the <select>, keeping each song's index into PLAYABLE as its
+// value. Genres appear in the order they first show up in SONGS.
+const BY_GENRE: Array<{ genre: string; entries: Array<{ song: Song; index: number }> }> = []
+PLAYABLE.forEach((song, index) => {
+  const lane = BY_GENRE.find(g => g.genre === song.genre)
+  if (lane) lane.entries.push({ song, index })
+  else BY_GENRE.push({ genre: song.genre, entries: [{ song, index }] })
+})
 
 export default function Songs() {
   const [songIdx, setSongIdx] = useState(0)
@@ -42,8 +51,12 @@ export default function Songs() {
           value={songIdx}
           onChange={(e) => { setSongIdx(Number(e.target.value)); setShape(null) }}
         >
-          {PLAYABLE.map((s, i) => (
-            <option key={s.title} value={i}>{s.title} — {s.artist}</option>
+          {BY_GENRE.map(({ genre, entries }) => (
+            <optgroup key={genre} label={genre}>
+              {entries.map(({ song: s, index }) => (
+                <option key={s.title} value={index}>{s.title} — {s.artist}</option>
+              ))}
+            </optgroup>
           ))}
         </SelectInput>
       </LabeledField>
