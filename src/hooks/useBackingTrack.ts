@@ -3,11 +3,66 @@ import * as Tone from 'tone'
 import { CHROMATIC_NOTES, noteIndex } from '../utils/notes'
 import type { NoteName } from '../utils/notes'
 import type { ScaleDef } from '../utils/scales'
+import { resolveProgression } from '../utils/chords'
+import type { ChordQuality, DiatonicChord, ProgressionPreset } from '../utils/chords'
 
 /** Build a Tone.js note string from root + semitone offset + octave. */
 function noteAt(root: NoteName, semitones: number, octave: number): string {
   const total = noteIndex(root) + semitones
   return `${CHROMATIC_NOTES[total % 12]}${octave + Math.floor(total / 12)}`
+}
+
+/** Semitone offsets above the chord root, per quality. */
+const CHORD_INTERVALS: Record<ChordQuality, [number, number]> = {
+  major: [4, 7], minor: [3, 7], diminished: [3, 6], augmented: [4, 8],
+}
+
+interface BarVoicing {
+  /** Piano triad, voiced where the sampled grand is strongest. */
+  piano: string[]
+  /** Four quarter-note bass notes for this bar. */
+  bass: string[]
+}
+
+function voiceBar(chord: DiatonicChord): BarVoicing {
+  const [third, fifth] = CHORD_INTERVALS[chord.quality]
+  return {
+    piano: [
+      noteAt(chord.root, 0, 3),
+      noteAt(chord.root, third, 3),
+      noteAt(chord.root, fifth, 3),
+    ],
+    bass: [
+      noteAt(chord.root, 0, 2),
+      noteAt(chord.root, fifth, 2),
+      noteAt(chord.root, 0, 2),
+      noteAt(chord.root, third, 2),
+    ],
+  }
+}
+
+/**
+ * The no-progression fallback: one bar vamping the tonic, as the track
+ * behaved before progressions existed. Adds the 7th on 7-note scales.
+ */
+function tonicBar(root: NoteName, scale: ScaleDef): BarVoicing {
+  const fifth = scale.intervals[4] ?? 7
+  const third = scale.intervals[2] ?? 4
+  const seventh = scale.intervals[6] ?? 10
+  return {
+    piano: [
+      noteAt(root, 0, 3),
+      noteAt(root, third, 3),
+      noteAt(root, fifth, 3),
+      ...(scale.intervals.length >= 7 ? [noteAt(root, seventh, 4)] : []),
+    ],
+    bass: [
+      noteAt(root, 0, 2),
+      noteAt(root, fifth, 2),
+      noteAt(root, 0, 2),
+      noteAt(root, third, 2),
+    ],
+  }
 }
 
 /** Pick a practice BPM based on the scale's genres. */
@@ -80,7 +135,12 @@ interface TrackHandle {
   dispose: () => void
 }
 
-function startTrack(root: NoteName, scale: ScaleDef, kit: Instruments, bpm: number): TrackHandle {
+function startTrack(
+  kit: Instruments,
+  bpm: number,
+  bars: BarVoicing[],
+  onBar: (bar: number) => void,
+): TrackHandle {
   const transport = Tone.getTransport()
   transport.stop()
   transport.cancel(0)
@@ -117,31 +177,7 @@ function startTrack(root: NoteName, scale: ScaleDef, kit: Instruments, bpm: numb
   kit.piano.connect(pianoVerb)
   kit.piano.volume.value = -3
 
-  // ── Scale-derived notes ──────────────────────────────────────────────────────
-  const fifth   = scale.intervals[4] ?? 7
-  const third   = scale.intervals[2] ?? 4
-  const seventh = scale.intervals[6] ?? 10
-
-  // 2-bar walking bass (quarter notes × 8)
-  const bassLine: string[] = [
-    noteAt(root, 0,       2),
-    noteAt(root, fifth,   2),
-    noteAt(root, 0,       2),
-    noteAt(root, third,   2),
-    noteAt(root, 0,       2),
-    noteAt(root, fifth,   2),
-    noteAt(root, seventh, 2),
-    noteAt(root, fifth,   2),
-  ]
-
-  // Piano voicing: add 7th on scales that have one (gives jazz/full-band color).
-  // Voiced around octave 3–4, where the sampled grand is strongest.
-  const chord: string[] = [
-    noteAt(root, 0,       3),
-    noteAt(root, third,   3),
-    noteAt(root, fifth,   3),
-    ...(scale.intervals.length >= 7 ? [noteAt(root, seventh, 4)] : []),
-  ]
+  const totalBars = bars.length
 
   // ── Sequences ───────────────────────────────────────────────────────────────
   type S = string | null
@@ -172,34 +208,51 @@ function startTrack(root: NoteName, scale: ScaleDef, kit: Instruments, bpm: numb
     '16n',
   )
 
-  // Tom: a small two-note pickup fill on the last beat of the 2-bar loop
-  const tomFill: S[] = new Array(32).fill(null)
-  tomFill[28] = 'x'
-  tomFill[30] = 'x'
+  // Tom: two-note pickup on the last beat of the whole loop, so it lands on the
+  // turnaround regardless of how many bars the progression is. (Kick, snare and
+  // hi-hat are 1-bar patterns, so they already loop against any bar count.)
+  const tomFill: S[] = new Array(totalBars * 16).fill(null)
+  tomFill[totalBars * 16 - 4] = 'x'
+  tomFill[totalBars * 16 - 2] = 'x'
   const tomSeq = new Tone.Sequence<S>(
     (time) => kit.tom.triggerAttack('C1', time, 0.3 + Math.random() * 0.15),
     tomFill,
     '16n',
   )
 
-  // Bass: 2-bar walking line
+  // Bass: four quarter notes per bar, across the whole progression
   const bassSeq = new Tone.Sequence<string>(
     (time, note) => bass.triggerAttackRelease(note, '8n', time),
-    bassLine,
+    bars.flatMap(b => b.bass),
     '4n',
   )
 
-  // Piano: relaxed comping — chord held on beat 1, a shorter stab on the "and" of beat 2
-  type PianoHit = 'chord' | 'stab' | null
+  // Piano: relaxed comping — chord held on beat 1, a shorter stab on the "and" of
+  // beat 2. The bar index rides along in the value so the visual sync knows where
+  // in the progression we are.
+  type PianoHit = { kind: 'chord' | 'stab'; bar: number } | null
+  const pianoPattern: PianoHit[] = bars.flatMap((_, bar) => {
+    const barSteps: PianoHit[] = new Array(16).fill(null)
+    barSteps[0] = { kind: 'chord', bar }
+    barSteps[6] = { kind: 'stab', bar }
+    return barSteps
+  })
+
   const pianoSeq = new Tone.Sequence<PianoHit>(
     (time, hit) => {
-      if (hit === 'chord') {
-        kit.piano.triggerAttackRelease(chord, '2n', time, 0.78 + Math.random() * 0.12)
-      } else if (hit === 'stab') {
-        kit.piano.triggerAttackRelease(chord, '8n', time, 0.55 + Math.random() * 0.15)
+      if (!hit) return
+      const voicing = bars[hit.bar]!.piano
+      if (hit.kind === 'chord') {
+        kit.piano.triggerAttackRelease(voicing, '2n', time, 0.78 + Math.random() * 0.12)
+        // Tone's callbacks run AHEAD of the audio in order to schedule it, so
+        // calling the React setter directly here would light the neck up before
+        // the chord sounds. Tone.Draw defers to the animation frame at `time`.
+        Tone.getDraw().schedule(() => onBar(hit.bar), time)
+      } else {
+        kit.piano.triggerAttackRelease(voicing, '8n', time, 0.55 + Math.random() * 0.15)
       }
     },
-    ['chord', null, null, null, null, null, 'stab', null, null, null, null, null, null, null, null, null],
+    pianoPattern,
     '16n',
   )
 
@@ -245,11 +298,27 @@ function startTrack(root: NoteName, scale: ScaleDef, kit: Instruments, bpm: numb
   }
 }
 
-export function useBackingTrack(root: NoteName, scale: ScaleDef) {
+export function useBackingTrack(
+  root: NoteName,
+  scale: ScaleDef,
+  preset?: ProgressionPreset | null,
+) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [bpm, setBpmState] = useState(() => bpmForScale(scale))
+  const [currentBar, setCurrentBar] = useState<number | null>(null)
   const trackRef = useRef<TrackHandle | null>(null)
+
+  // One resolved chord per bar, or null when there is no usable progression
+  // (none selected, or the scale has no diatonic triads to build chords from).
+  const progression = preset ? resolveProgression(root, scale, preset) : null
+
+  const bars: BarVoicing[] = progression
+    ? progression.map(voiceBar)
+    : [tonicBar(root, scale)]
+
+  const currentChord =
+    progression && currentBar !== null ? progression[currentBar] ?? null : null
 
   // Scale change resets tempo to the new genre default. Done as a render-time
   // adjustment (not an effect) so the restart effect below already sees the
@@ -272,6 +341,8 @@ export function useBackingTrack(root: NoteName, scale: ScaleDef) {
     trackRef.current?.dispose()
     trackRef.current = null
     setIsPlaying(false)
+    // Clearing the bar returns the neck to its full static state.
+    setCurrentBar(null)
   }, [])
 
   const toggle = useCallback(async () => {
@@ -282,29 +353,38 @@ export function useBackingTrack(root: NoteName, scale: ScaleDef) {
     try {
       const kit = await getInstruments()
       trackRef.current?.dispose()
-      trackRef.current = startTrack(root, scale, kit, bpm)
+      trackRef.current = startTrack(kit, bpm, bars, setCurrentBar)
       setIsPlaying(true)
     } finally {
       setIsLoading(false)
     }
-  }, [isPlaying, isLoading, root, scale, bpm, stop])
+    // `bars` is derived fresh each render from root/scale/preset, which are all
+    // already deps — listing it directly would rebuild this callback every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying, isLoading, root, scale, preset, bpm, stop])
 
-  // Restart seamlessly when root/scale changes while playing.
+  // Restart seamlessly when root/scale/progression changes while playing.
   // Safe to read `instruments` directly here — isPlaying can only be true
   // once toggle() has already awaited getInstruments(). `bpm` is read from
   // the closure, not the deps: a bpm change alone must NOT restart the
   // track (setBpm ramps the live transport instead), and on scale change
   // the render-time reset above guarantees this closure sees the new
-  // genre default.
+  // genre default. `preset` must be here or the audio and the neck desync
+  // when the progression changes mid-play.
   useEffect(() => {
     if (!isPlaying || !instruments) return
     trackRef.current?.dispose()
-    trackRef.current = startTrack(root, scale, instruments, bpm)
+    setCurrentBar(null)
+    trackRef.current = startTrack(instruments, bpm, bars, setCurrentBar)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [root, scale])
+  }, [root, scale, preset])
 
   // Cleanup on unmount
   useEffect(() => () => { trackRef.current?.dispose() }, [])
 
-  return { isPlaying, isLoading, toggle, bpm, setBpm, baseBpm: bpmForScale(scale) }
+  return {
+    isPlaying, isLoading, toggle, bpm, setBpm,
+    baseBpm: bpmForScale(scale),
+    currentChord,
+  }
 }
