@@ -195,10 +195,22 @@ export const SONGS: readonly Song[] = [
     note: 'I–IV–I–V–IV–I. Country phrasing leans on the major third and the sixth rather than the blues notes — try major pentatonic before you reach for minor.',
   },
   {
-    title: 'Get Lucky', artist: 'Daft Punk',
-    root: 'B', scaleName: 'Natural Minor (Aeolian)', genre: 'Funk-pop', bpm: 116,
-    chords: [{ degree: 0, quality: 'minor7' }, { degree: 2 }, { degree: 4, quality: 'minor7' }, { degree: 3 }],
-    note: 'A four-bar loop that never resolves, which is why it can run forever. Minor 7ths and a steady sixteenth-note right hand matter more here than what you pick.',
+    title: 'By the Way', artist: 'Red Hot Chili Peppers',
+    root: 'A', scaleName: 'Natural Minor (Aeolian)', genre: 'Funk rock', bpm: 122,
+    chords: [{ degree: 0 }, { degree: 5 }, { degree: 2 }, { degree: 6 }],
+    note: 'The chorus loop: i–VI–III–VII descending. Frusciante tends to stay melodic and rhythmic rather than fast here — the whole band is already busy, so single notes with space cut through better than runs.',
+  },
+  {
+    title: 'Stairway to Heaven', artist: 'Led Zeppelin',
+    root: 'A', scaleName: 'Natural Minor (Aeolian)', genre: 'Classic rock', bpm: 84,
+    chords: [{ degree: 0 }, { degree: 6 }, { degree: 5 }],
+    note: 'The solo section only — a descending i–VII–VI, three bars, so the loop is an odd length. Page builds the whole solo from A minor pentatonic; the interest is in phrasing and repetition, not new notes.',
+  },
+  {
+    title: 'Do It Again', artist: 'Steely Dan',
+    root: 'B', scaleName: 'Natural Minor (Aeolian)', genre: 'Jazz rock', bpm: 100,
+    chords: [{ degree: 0, quality: 'minor7' }, { degree: 3, quality: 'minor7' }],
+    note: 'Reduced to the two-chord modal vamp the tune sits on. Most Steely Dan needs altered dominants and mid-song key changes that this backing engine cannot express — this one works because it barely moves. Dorian colour over the vamp rather than straight minor pentatonic gets you closer to the record.',
   },
 ]
 
