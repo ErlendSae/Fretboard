@@ -5,161 +5,63 @@ import BackingTrackPanel from '../components/BackingTrackPanel'
 import FretboardLegend from '../components/FretboardLegend'
 import {
   ControlLabel,
-  InfoCard,
+  LabeledField,
+  SegmentedControl,
   SelectInput,
 } from '../components/ui'
-import { CHROMATIC_NOTES, type NoteName, noteIndex } from '../utils/notes'
-import { SCALES, getScaleNotes } from '../utils/scales'
+import { CHROMATIC_NOTES, type NoteName } from '../utils/notes'
+import { SCALES } from '../utils/scales'
 import { buildScaleMarkers } from '../utils/scaleMarkers'
-import { genreColorClass } from '../utils/genreColors'
 import { useBackingTrack } from '../hooks/useBackingTrack'
 import { useSpacebarToggle } from '../hooks/useSpacebarToggle'
-
-const POSITIONS = [
-  { label: 'All', range: null },
-  { label: 'I',   range: [0, 4]  as [number, number] },
-  { label: 'II',  range: [3, 7]  as [number, number] },
-  { label: 'III', range: [5, 9]  as [number, number] },
-  { label: 'IV',  range: [7, 11] as [number, number] },
-  { label: 'V',   range: [9, 12] as [number, number] },
-]
 
 export default function Explorer() {
   const [root, setRoot] = useState<NoteName>('A')
   const [scaleIdx, setScaleIdx] = useState(0)
   const [showDegrees, setShowDegrees] = useState(false)
-  const [positionIdx, setPositionIdx] = useState(0)
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const scale = SCALES[scaleIdx]!
   const { isPlaying, isLoading, toggle, bpm, baseBpm, setBpm } = useBackingTrack(root, scale)
   useSpacebarToggle(toggle)
 
-  const posRange = POSITIONS[positionIdx]!.range
-  const markers = buildScaleMarkers({
-    root,
-    scale,
-    fretRange: posRange ?? undefined,
-    showDegrees,
-  })
-
-  // Still needed by the note-chip row, which Task 6 deletes along with these.
-  const scaleNotes = getScaleNotes(root, scale)
-  const rootIdx = noteIndex(root)
-  const chordToneNotes = new Set<NoteName>()
-  for (const degIdx of [0, 2, 4]) {
-    const semitone = scale.intervals[degIdx]
-    if (semitone !== undefined) {
-      chordToneNotes.add(CHROMATIC_NOTES[(rootIdx + semitone) % 12]!)
-    }
-  }
+  const markers = buildScaleMarkers({ root, scale, showDegrees })
 
   // Shared controls JSX — used in both the desktop sidebar and the mobile bottom sheet
   const controlsContent = (
     <>
-      {/* Key */}
-      <div className="space-y-2">
-        <ControlLabel htmlFor="explorer-key">Key</ControlLabel>
+      <LabeledField label="Key">
         <SelectInput
-          id="explorer-key"
           fullWidth
           value={root}
           onChange={(e) => setRoot(e.target.value as NoteName)}
         >
-          {CHROMATIC_NOTES.map(n => (
-            <option key={n} value={n}>{n}</option>
-          ))}
+          {CHROMATIC_NOTES.map(n => <option key={n} value={n}>{n}</option>)}
         </SelectInput>
-      </div>
+      </LabeledField>
 
-      {/* Scale */}
-      <div className="space-y-2">
-        <ControlLabel htmlFor="explorer-scale">Scale</ControlLabel>
+      <LabeledField label="Scale">
         <SelectInput
-          id="explorer-scale"
           fullWidth
           value={scaleIdx}
-          onChange={(e) => {
-            setScaleIdx(Number(e.target.value))
-            setPositionIdx(0)
-          }}
-          className="focus-visible:outline-none focus-visible:border-stone-500 focus-visible:ring-1 focus-visible:ring-stone-500/40"
+          onChange={(e) => setScaleIdx(Number(e.target.value))}
         >
-          {SCALES.map((s, i) => (
-            <option key={i} value={i}>{s.name}</option>
-          ))}
+          {SCALES.map((s, i) => <option key={i} value={i}>{s.name}</option>)}
         </SelectInput>
-      </div>
+      </LabeledField>
 
-      {/* Labels */}
       <div className="space-y-2">
-        <span
-          id="labels-group"
-          className="text-[11px] font-semibold text-stone-500 tracking-[0.08em] uppercase"
-        >
-          Labels
-        </span>
-        <div
-          role="radiogroup"
-          aria-labelledby="labels-group"
-          className="flex rounded-lg overflow-hidden border border-stone-200/10 text-sm font-medium"
-        >
-          {(['Notes', 'Degrees'] as const).map((opt, i) => {
-            const isActive = showDegrees === (i === 1)
-            return (
-              <button
-                key={opt}
-                onClick={() => setShowDegrees(i === 1)}
-                role="radio"
-                aria-checked={isActive}
-                className={`flex-1 px-4 py-2 transition-colors duration-150
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-terra-500
-                  ${isActive
-                    ? 'bg-terra-500 text-stone-200'
-                    : 'bg-stone-800 text-stone-400 hover:text-stone-200'
-                  }`}
-              >
-                {opt}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Position */}
-      <div className="space-y-2">
-        <span
-          id="position-group"
-          className="text-[11px] font-semibold text-stone-500 tracking-[0.08em] uppercase"
-        >
-          Position
-        </span>
-        <div
-          role="radiogroup"
-          aria-labelledby="position-group"
-          className="grid grid-cols-3 gap-1"
-        >
-          {POSITIONS.map((pos, i) => {
-            const isActive = positionIdx === i
-            return (
-              <button
-                key={pos.label}
-                role="radio"
-                aria-checked={isActive}
-                onClick={() => setPositionIdx(i)}
-                className={`py-2 rounded text-xs font-medium transition-all duration-150
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500
-                  focus-visible:ring-offset-1 focus-visible:ring-offset-stone-950
-                  ${isActive
-                    ? 'bg-terra-500 text-stone-200'
-                    : 'bg-stone-800 text-stone-400 hover:bg-stone-700 hover:text-stone-200'
-                  }`}
-              >
-                {pos.label}
-              </button>
-            )
-          })}
-        </div>
+        <ControlLabel>Labels</ControlLabel>
+        <SegmentedControl
+          options={[
+            { value: 'notes', label: 'Notes' },
+            { value: 'degrees', label: 'Degrees' },
+          ]}
+          value={showDegrees ? 'degrees' : 'notes'}
+          onChange={(v) => setShowDegrees(v === 'degrees')}
+          ariaLabel="Marker labels"
+          fullWidth
+        />
       </div>
     </>
   )
@@ -193,52 +95,14 @@ export default function Explorer() {
       {/* ── Main content ─────────────────────────────────────────────────────── */}
       <div className="flex-1 min-w-0 overflow-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
 
-        <div className="animate-fade-up">
-          <p className="text-[11px] font-semibold text-stone-500 tracking-[0.12em] uppercase mb-1.5">Explorer</p>
-          <h1 className="font-display font-semibold text-stone-200 text-[2.375rem] leading-[1.05] tracking-[-0.02em]">
-            <span className="text-terra-400">{root}</span>{' '}
-            <span className="font-normal text-stone-400">{scale.name}</span>
-          </h1>
-          <p className="text-stone-400 text-sm mt-2">
-            Explore any scale on the neck — pick a root and scale, then try a position.
-          </p>
-        </div>
+        <h1 className="animate-fade-up font-display font-semibold text-stone-200 text-[2.375rem] leading-[1.05] tracking-[-0.02em]">
+          <span className="text-terra-400">{root}</span>{' '}
+          <span className="font-normal text-stone-400">{scale.name}</span>
+        </h1>
 
         <Fretboard markers={markers} />
 
-        {/* Legend + note chips */}
-        <div className="flex flex-wrap gap-x-10 gap-y-4 items-start">
-          <FretboardLegend />
-
-          <div className="space-y-1.5">
-            <div className="flex flex-wrap gap-1.5">
-              {[...scaleNotes].map((note) => (
-                <span
-                  key={note}
-                  className={`px-2 py-0.5 rounded text-xs font-mono font-semibold
-                    ${note === root
-                      ? 'bg-stone-200/15 text-stone-200 ring-1 ring-stone-400/40'
-                      : chordToneNotes.has(note)
-                        ? 'bg-sun-400/15 text-sun-400 ring-1 ring-sun-400/30'
-                        : 'bg-terra-300/15 text-terra-300 ring-1 ring-terra-300/30'
-                    }`}
-                >
-                  {note}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Scale info */}
-        <InfoCard>
-          <p className="text-stone-300 text-[0.9375rem] leading-relaxed">{scale.description}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {scale.genres.map(g => (
-              <span key={g} className={`px-2 py-0.5 rounded text-xs font-medium ${genreColorClass(g)}`}>{g}</span>
-            ))}
-          </div>
-        </InfoCard>
+        <FretboardLegend />
 
       </div>
 
