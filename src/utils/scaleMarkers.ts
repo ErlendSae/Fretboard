@@ -33,6 +33,12 @@ export interface ScaleMarkerOptions {
   fretRange?: [number, number]
   /** Label markers with scale degrees ("b3") instead of note names. */
   showDegrees?: boolean
+  /**
+   * Notes of the chord sounding right now. When given, markers outside this set
+   * are muted and chord notes outside the scale are added — a borrowed chord's
+   * colour note has no scale marker to emphasize, so it must appear.
+   */
+  emphasize?: ReadonlySet<NoteName>
 }
 
 /**
@@ -40,7 +46,7 @@ export interface ScaleMarkerOptions {
  * Pure — no React, no module state.
  */
 export function buildScaleMarkers({
-  root, scale, fretRange, showDegrees,
+  root, scale, fretRange, showDegrees, emphasize,
 }: ScaleMarkerOptions): FretMarker[] {
   const scaleNotes = getScaleNotes(root, scale)
   const chordTones = chordToneNotes(root, scale)
@@ -51,13 +57,23 @@ export function buildScaleMarkers({
   for (let s = 0; s < NUM_STRINGS; s++) {
     for (let f = lo; f <= hi; f++) {
       const note = fretToNote(s, f)
-      if (!scaleNotes.has(note)) continue
+      const inScale = scaleNotes.has(note)
+      const inChord = emphasize?.has(note) ?? false
+      if (!inScale && !inChord) continue
+
       const interval = ((noteIndex(note) - rootIdx) + 12) % 12
+      const variant: FretMarker['variant'] =
+        !inScale ? 'outside'                    // borrowed chord tone — the colour note
+        : note === root ? 'root'
+        : chordTones.has(note) ? 'chord'
+        : 'scale'
+
       markers.push({
         stringIndex: s,
         fret: f,
-        variant: note === root ? 'root' : chordTones.has(note) ? 'chord' : 'scale',
+        variant,
         label: showDegrees ? DEGREE_LABELS[interval]! : undefined,
+        muted: emphasize ? !inChord : false,
       })
     }
   }
