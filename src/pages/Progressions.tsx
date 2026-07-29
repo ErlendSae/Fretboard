@@ -31,11 +31,17 @@ function strumChord(notes: readonly NoteName[]): void {
 
 // ─── Quality styling ──────────────────────────────────────────────────────────
 
+// This page only ever renders diatonic triads, so the seventh-chord entries
+// reuse their parent triad's styling. Superseded by the Songs page.
 const QUALITY_ACTIVE: Record<ChordQuality, string> = {
   major:      'bg-stone-200/10 border-stone-200/30 text-stone-200',
   minor:      'bg-plum-500/15 border-plum-400/40 text-plum-200',
   diminished: 'bg-terra-500/15 border-terra-400/40 text-terra-200',
   augmented:  'bg-sun-500/15 border-sun-400/40 text-sun-200',
+  dominant7:  'bg-stone-200/10 border-stone-200/30 text-stone-200',
+  major7:     'bg-stone-200/10 border-stone-200/30 text-stone-200',
+  minor7:     'bg-plum-500/15 border-plum-400/40 text-plum-200',
+  minor7b5:   'bg-terra-500/15 border-terra-400/40 text-terra-200',
 }
 
 const QUALITY_ROMAN: Record<ChordQuality, string> = {
@@ -43,6 +49,10 @@ const QUALITY_ROMAN: Record<ChordQuality, string> = {
   minor:      'text-plum-400',
   diminished: 'text-terra-400',
   augmented:  'text-sun-400',
+  dominant7:  'text-stone-500',
+  major7:     'text-stone-500',
+  minor7:     'text-plum-400',
+  minor7b5:   'text-terra-400',
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
