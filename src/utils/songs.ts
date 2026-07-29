@@ -214,6 +214,18 @@ export const SONGS: readonly Song[] = [
   },
 ]
 
+/**
+ * Short key label for display, e.g. "A minor", "D Mixolydian".
+ * The full scale names are too long for a card.
+ */
+export function shortKeyLabel(song: Song): string {
+  const mode =
+    song.scaleName === 'Major (Ionian)' ? 'major'
+    : song.scaleName === 'Natural Minor (Aeolian)' ? 'minor'
+    : song.scaleName
+  return `${song.root} ${mode}`
+}
+
 export interface ResolvedSong {
   root: NoteName
   scale: ScaleDef
