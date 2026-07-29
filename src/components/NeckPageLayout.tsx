@@ -20,7 +20,7 @@ interface NeckPageLayoutProps {
 }
 
 /**
- * The shell shared by Explorer and CAGED: a fixed-width desktop sidebar that
+ * The shell shared by Songs and Explorer: a fixed-width desktop sidebar that
  * becomes a bottom sheet below `md`, wrapped around a scrolling main column.
  * Owns only the sheet's open/closed state.
  */
