@@ -15,11 +15,20 @@ export interface FretMarker {
   label?: string
 }
 
+/** A labelled box drawn around a fret window — used to show where a CAGED shape sits. */
+export interface FretboardOutline {
+  /** Inclusive [low, high] fret window. */
+  fretRange: [number, number]
+  label: string
+}
+
 interface FretboardProps {
   markers?: FretMarker[]
   onFretClick?: (stringIndex: number, fret: number) => void
   /** If true, clicking anywhere on a fret column triggers onFretClick (for quiz mode) */
   clickableStrings?: boolean
+  /** Optional annotation box around a fret window. Drawn under the markers. */
+  outline?: FretboardOutline
 }
 
 const FRET_WIDTH = 68   // px per fret column
@@ -27,7 +36,7 @@ const STRING_GAP = 36   // px between strings
 const NECK_PADDING_V = 24 // top/bottom padding inside neck
 const MARKER_SIZE = 26
 
-export default function Fretboard({ markers = [], onFretClick, clickableStrings }: FretboardProps) {
+export default function Fretboard({ markers = [], onFretClick, clickableStrings, outline }: FretboardProps) {
   const neckHeight = (NUM_STRINGS - 1) * STRING_GAP + NECK_PADDING_V * 2
   const neckWidth = (NUM_FRETS + 1) * FRET_WIDTH
 
@@ -136,6 +145,25 @@ export default function Fretboard({ markers = [], onFretClick, clickableStrings 
             </div>
           )
         })}
+
+        {/* Shape outline — drawn above the wood but below the markers.
+            Fret f occupies the span between fret lines f-1 and f; fret 0 sits
+            on the nut itself, so it needs a little room to the left of x=0. */}
+        {outline && (() => {
+          const [lo, hi] = outline.fretRange
+          const left = lo === 0 ? -14 : (lo - 1) * FRET_WIDTH
+          return (
+            <div
+              aria-hidden="true"
+              className="absolute inset-y-1 rounded-lg border-2 border-terra-400/80 bg-terra-400/5 pointer-events-none"
+              style={{ left, width: hi * FRET_WIDTH - left }}
+            >
+              <span className="absolute -top-px left-1 font-mono text-[10px] font-bold text-terra-200/90">
+                {outline.label}
+              </span>
+            </div>
+          )
+        })()}
 
         {/* Clickable fret/string cells + note markers */}
         {Array.from({ length: NUM_STRINGS }, (_, s) =>
