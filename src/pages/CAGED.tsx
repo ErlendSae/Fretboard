@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import Fretboard from '../components/Fretboard'
 import BackingTrackPanel from '../components/BackingTrackPanel'
@@ -8,6 +8,7 @@ import { SCALES } from '../utils/scales'
 import { getCagedFretRange, CAGED_SHAPES, SHAPE_INFO, type CagedShape } from '../utils/caged'
 import { buildScaleMarkers } from '../utils/scaleMarkers'
 import { useBackingTrack } from '../hooks/useBackingTrack'
+import { useSpacebarToggle } from '../hooks/useSpacebarToggle'
 
 const MAJOR_IDX = SCALES.findIndex(s => s.name === 'Major (Ionian)')
 const MINOR_IDX = SCALES.findIndex(s => s.name === 'Natural Minor (Aeolian)')
@@ -20,20 +21,7 @@ export default function CAGEDPage() {
 
   const scale = SCALES[isMajor ? MAJOR_IDX : MINOR_IDX]!
   const { isPlaying, isLoading, toggle, bpm, setBpm } = useBackingTrack(root, scale)
-
-  const toggleRef = useRef(toggle)
-  useEffect(() => { toggleRef.current = toggle }, [toggle])
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName
-      if (e.code === 'Space' && tag !== 'SELECT' && tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'BUTTON') {
-        e.preventDefault()
-        toggleRef.current()
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [])
+  useSpacebarToggle(toggle)
 
   const [fretMin, fretMax] = getCagedFretRange(root, shape)
   const markers = buildScaleMarkers({ root, scale, fretRange: [fretMin, fretMax] })

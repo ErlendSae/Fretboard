@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import Fretboard from '../components/Fretboard'
 import BackingTrackPanel from '../components/BackingTrackPanel'
@@ -12,6 +12,7 @@ import { SCALES, getScaleNotes } from '../utils/scales'
 import { buildScaleMarkers } from '../utils/scaleMarkers'
 import { genreColorClass } from '../utils/genreColors'
 import { useBackingTrack } from '../hooks/useBackingTrack'
+import { useSpacebarToggle } from '../hooks/useSpacebarToggle'
 
 const POSITIONS = [
   { label: 'All', range: null },
@@ -31,21 +32,7 @@ export default function Explorer() {
 
   const scale = SCALES[scaleIdx]!
   const { isPlaying, isLoading, toggle, bpm, setBpm } = useBackingTrack(root, scale)
-
-  // Spacebar → play/pause. Use a ref so the listener never goes stale.
-  const toggleRef = useRef(toggle)
-  useEffect(() => { toggleRef.current = toggle }, [toggle])
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName
-      if (e.code === 'Space' && tag !== 'SELECT' && tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'BUTTON') {
-        e.preventDefault()
-        toggleRef.current()
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [])
+  useSpacebarToggle(toggle)
 
   const posRange = POSITIONS[positionIdx]!.range
   const markers = buildScaleMarkers({
