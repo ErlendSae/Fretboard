@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import Fretboard from '../components/Fretboard'
 import BackingTrackPanel from '../components/BackingTrackPanel'
+import FretboardLegend from '../components/FretboardLegend'
 import {
   ControlLabel,
   InfoCard,
@@ -207,20 +208,7 @@ export default function Explorer() {
 
         {/* Legend + note chips */}
         <div className="flex flex-wrap gap-x-10 gap-y-4 items-start">
-          <div className="flex items-center gap-5 text-sm text-stone-400 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-stone-100 ring-1 ring-stone-400/40" />
-              <span>Root</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-sun-400 ring-1 ring-sun-200/40" />
-              <span>Chord tone</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded-full bg-terra-300 ring-1 ring-terra-200/40" />
-              <span>Scale tone</span>
-            </div>
-          </div>
+          <FretboardLegend />
 
           <div className="space-y-1.5">
             <div className="flex flex-wrap gap-1.5">

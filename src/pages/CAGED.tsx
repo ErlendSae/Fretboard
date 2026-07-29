@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 import Fretboard from '../components/Fretboard'
 import BackingTrackPanel from '../components/BackingTrackPanel'
+import FretboardLegend from '../components/FretboardLegend'
 import { ControlLabel, SelectInput } from '../components/ui'
 import { CHROMATIC_NOTES, type NoteName } from '../utils/notes'
 import { SCALES } from '../utils/scales'
@@ -163,21 +164,7 @@ export default function CAGEDPage() {
           <Fretboard markers={markers} />
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center gap-5 text-sm text-stone-400 flex-wrap">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-stone-100 ring-1 ring-stone-400/40 shrink-0" />
-            <span>Root ({root})</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-sun-400 ring-1 ring-sun-200/40 shrink-0" />
-            <span>Chord tone</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-terra-300 ring-1 ring-terra-200/40 shrink-0" />
-            <span>Scale tone</span>
-          </div>
-        </div>
+        <FretboardLegend rootNote={root} />
 
         {/* Info card */}
         <div className="bg-stone-800/60 border border-stone-200/10 rounded-xl p-5 space-y-3 animate-fade-up" style={{ animationDelay: '180ms' }}>
