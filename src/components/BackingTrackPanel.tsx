@@ -17,6 +17,8 @@ interface BackingTrackPanelProps {
   /** The scale's natural tempo; the three presets are computed from it. */
   baseBpm: number
   setBpm: (next: number) => void
+  /** Chord sounding right now, when a progression is playing. */
+  currentChordName?: string | null
 }
 
 /**
@@ -24,7 +26,7 @@ interface BackingTrackPanelProps {
  * Rendered in the desktop sidebar (208px) and the mobile bottom sheet.
  */
 export default function BackingTrackPanel({
-  isPlaying, isLoading, toggle, bpm, baseBpm, setBpm,
+  isPlaying, isLoading, toggle, bpm, baseBpm, setBpm, currentChordName,
 }: BackingTrackPanelProps) {
   const bpmFor = (factor: number) =>
     Math.min(BPM_MAX, Math.max(BPM_MIN, Math.round(baseBpm * factor)))
@@ -43,9 +45,19 @@ export default function BackingTrackPanel({
         }`}
       >
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[11px] font-semibold text-stone-500 tracking-[0.08em] uppercase">
-            Backing track
-          </p>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold text-stone-500 tracking-[0.08em] uppercase">
+              Backing track
+            </p>
+            {currentChordName && (
+              <p
+                aria-live="polite"
+                className="font-mono text-sm font-bold text-sun-400 mt-0.5 tabular-nums"
+              >
+                {currentChordName}
+              </p>
+            )}
+          </div>
           <button
             onClick={toggle}
             disabled={isLoading}

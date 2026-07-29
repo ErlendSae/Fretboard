@@ -7,6 +7,7 @@ import { ControlLabel, LabeledField, SegmentedControl, SelectInput } from '../co
 import { CHROMATIC_NOTES, type NoteName } from '../utils/notes'
 import { SCALES } from '../utils/scales'
 import { getCagedFretRange, CAGED_SHAPES, SHAPE_INFO, type CagedShape } from '../utils/caged'
+import { PROGRESSION_PRESETS } from '../utils/chords'
 import { buildScaleMarkers } from '../utils/scaleMarkers'
 import { useBackingTrack } from '../hooks/useBackingTrack'
 import { useSpacebarToggle } from '../hooks/useSpacebarToggle'
@@ -21,12 +22,22 @@ export default function CAGEDPage() {
   // (see utils/caged.ts), so the full neck IS "all shapes" — a shape is an
   // orientation aid you switch on, never a filter you must operate.
   const [shape, setShape] = useState<CagedShape | null>(null)
+  const [progressionIdx, setProgressionIdx] = useState(-1) // -1 = none
 
   const scale = SCALES[isMajor ? MAJOR_IDX : MINOR_IDX]!
-  const { isPlaying, isLoading, toggle, bpm, baseBpm, setBpm } = useBackingTrack(root, scale)
+
+  const presets = PROGRESSION_PRESETS.filter(p => p.tonality === (isMajor ? 'major' : 'minor'))
+  const preset = presets[progressionIdx] ?? null
+
+  const { isPlaying, isLoading, toggle, bpm, baseBpm, setBpm, currentChord } =
+    useBackingTrack(root, scale, preset)
   useSpacebarToggle(toggle)
 
-  const markers = buildScaleMarkers({ root, scale })
+  const markers = buildScaleMarkers({
+    root,
+    scale,
+    emphasize: currentChord ? new Set(currentChord.notes) : undefined,
+  })
   const outlineRange = shape ? getCagedFretRange(root, shape) : null
   const info = shape ? SHAPE_INFO[shape] : null
 
@@ -50,11 +61,41 @@ export default function CAGEDPage() {
             { value: 'minor', label: 'Minor' },
           ]}
           value={isMajor ? 'major' : 'minor'}
-          onChange={(v) => setIsMajor(v === 'major')}
+          onChange={(v) => {
+            setIsMajor(v === 'major')
+            // The preset list is filtered by tonality, so the index would now
+            // point at a different progression.
+            setProgressionIdx(-1)
+          }}
           ariaLabel="Major or minor"
           fullWidth
         />
       </div>
+
+      <LabeledField label="Progression">
+        <SelectInput
+          fullWidth
+          value={progressionIdx}
+          onChange={(e) => {
+            const next = Number(e.target.value)
+            setProgressionIdx(next)
+            // Song presets carry their canonical key — jump there so one pick
+            // is enough to be playing the actual song.
+            const picked = presets[next]
+            if (picked?.canonicalRoot) {
+              setRoot(picked.canonicalRoot)
+              setIsMajor(picked.tonality === 'major')
+            }
+          }}
+        >
+          <option value={-1}>None — vamp on the tonic</option>
+          {presets.map((p, i) => (
+            <option key={p.label} value={i}>
+              {p.attribution ? `${p.attribution} (${p.label})` : p.label}
+            </option>
+          ))}
+        </SelectInput>
+      </LabeledField>
     </>
   )
 
@@ -74,6 +115,7 @@ export default function CAGEDPage() {
           bpm={bpm}
           baseBpm={baseBpm}
           setBpm={setBpm}
+          currentChordName={currentChord?.name ?? null}
         />
       }
       sheetLabel="CAGED controls"
