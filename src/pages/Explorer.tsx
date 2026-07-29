@@ -1,21 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
-import Fretboard, { type FretMarker } from '../components/Fretboard'
+import Fretboard from '../components/Fretboard'
 import BackingTrackPanel from '../components/BackingTrackPanel'
 import {
   ControlLabel,
   InfoCard,
   SelectInput,
 } from '../components/ui'
-import { CHROMATIC_NOTES, type NoteName, NUM_STRINGS, NUM_FRETS, fretToNote, noteIndex } from '../utils/notes'
+import { CHROMATIC_NOTES, type NoteName, noteIndex } from '../utils/notes'
 import { SCALES, getScaleNotes } from '../utils/scales'
+import { buildScaleMarkers } from '../utils/scaleMarkers'
 import { genreColorClass } from '../utils/genreColors'
 import { useBackingTrack } from '../hooks/useBackingTrack'
-
-const DEGREE_LABELS: Record<number, string> = {
-  0: '1', 1: 'b2', 2: '2', 3: 'b3', 4: '3', 5: '4',
-  6: 'b5', 7: '5', 8: 'b6', 9: '6', 10: 'b7', 11: '7',
-}
 
 const POSITIONS = [
   { label: 'All', range: null },
@@ -51,32 +47,22 @@ export default function Explorer() {
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
+  const posRange = POSITIONS[positionIdx]!.range
+  const markers = buildScaleMarkers({
+    root,
+    scale,
+    fretRange: posRange ?? undefined,
+    showDegrees,
+  })
+
+  // Still needed by the note-chip row, which Task 6 deletes along with these.
   const scaleNotes = getScaleNotes(root, scale)
   const rootIdx = noteIndex(root)
-
   const chordToneNotes = new Set<NoteName>()
   for (const degIdx of [0, 2, 4]) {
     const semitone = scale.intervals[degIdx]
     if (semitone !== undefined) {
       chordToneNotes.add(CHROMATIC_NOTES[(rootIdx + semitone) % 12]!)
-    }
-  }
-
-  const posRange = POSITIONS[positionIdx]!.range
-
-  const markers: FretMarker[] = []
-  for (let s = 0; s < NUM_STRINGS; s++) {
-    for (let f = 0; f <= NUM_FRETS; f++) {
-      if (posRange && (f < posRange[0] || f > posRange[1])) continue
-      const note = fretToNote(s, f)
-      if (!scaleNotes.has(note)) continue
-      const interval = ((noteIndex(note) - rootIdx) + 12) % 12
-      const label = showDegrees ? DEGREE_LABELS[interval]! : undefined
-      const variant =
-        note === root ? 'root'
-        : chordToneNotes.has(note) ? 'chord'
-        : 'scale'
-      markers.push({ stringIndex: s, fret: f, variant, label })
     }
   }
 
