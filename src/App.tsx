@@ -1,11 +1,9 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, NavLink, Link } from 'react-router-dom'
-import { BarChart2, Guitar, Layers, Music2, Mic } from 'lucide-react'
+import { BrowserRouter, Routes, Route, NavLink, Link, Navigate } from 'react-router-dom'
+import { BarChart2, Guitar, Music2, Mic } from 'lucide-react'
 import Explorer from './pages/Explorer'
 import Songs from './pages/Songs'
 import Landing from './pages/Landing'
-import CAGEDPage from './pages/CAGED'
-import Progressions from './pages/Progressions'
 import Quiz from './pages/Quiz'
 import NotFound from './components/NotFound'
 import { supabase } from './lib/supabase'
@@ -16,8 +14,6 @@ const Stats = lazy(() => import('./pages/Stats'))
 const NAV_LINKS = [
   { to: '/songs',        label: 'Songs',       end: false, Icon: Music2    },
   { to: '/explore',      label: 'Explorer',    end: false, Icon: Guitar    },
-  { to: '/caged',        label: 'CAGED',       end: false, Icon: Layers    },
-  { to: '/progressions', label: 'Progressions',end: false, Icon: Music2    },
   { to: '/quiz',         label: 'Note Quiz',   end: false, Icon: Mic       },
   { to: '/stats',        label: 'Stats',       end: false, Icon: BarChart2 },
 ]
@@ -159,8 +155,9 @@ export default function App() {
               <Route path="/"             element={<Landing />} />
               <Route path="/songs"        element={<Songs />} />
               <Route path="/explore"      element={<Explorer />} />
-              <Route path="/caged"        element={<CAGEDPage />} />
-              <Route path="/progressions" element={<Progressions />} />
+              {/* Superseded by /songs — redirect so old bookmarks land somewhere useful */}
+              <Route path="/caged"        element={<Navigate to="/songs" replace />} />
+              <Route path="/progressions" element={<Navigate to="/songs" replace />} />
               <Route path="/quiz"         element={<Quiz />} />
               <Route path="/stats"        element={<Stats />} />
               <Route path="/auth"         element={<Auth />} />

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Layers, Map, Mic, Music2 } from 'lucide-react'
+import { Map, Mic, Music2 } from 'lucide-react'
 
 // ─── Static fretboard preview ─────────────────────────────────────────────────
 // Represents ~5 frets / 6 strings. No audio, no React state.
@@ -158,7 +158,7 @@ export default function Landing() {
             className="font-display font-normal text-stone-300 leading-[1.55] max-w-[560px] mx-auto"
             style={{ fontSize: '17px', fontVariationSettings: '"opsz" 18', letterSpacing: '-0.005em' }}
           >
-            Scales, ear training, and chord progressions for guitarists who want to stop guessing.
+            Play over real songs, learn the neck, and train your ear — for guitarists who want to stop guessing.
           </p>
         </div>
 
@@ -167,11 +167,11 @@ export default function Landing() {
           style={{ animationDelay: '160ms' }}
         >
           <Link
-            to="/explore"
+            to="/songs"
             className="animate-pulse-terra bg-terra-500 hover:bg-terra-400 active:bg-terra-600 active:scale-95
               text-stone-200 font-bold px-8 py-3.5 rounded-[14px] transition-all duration-150"
           >
-            Start exploring
+            Play over a song
           </Link>
           <Link
             to="/quiz"
@@ -194,34 +194,27 @@ export default function Landing() {
           Practice modes
         </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <FeatureCard
-            icon={<Map size={20} strokeWidth={1.5} />}
-            label="Explorer"
-            description="Visualize any scale across the full fretboard. Pick a key and scale, then try a position."
-            to="/explore"
+            icon={<Music2 size={20} strokeWidth={1.5} />}
+            label="Songs"
+            description="Play over real changes. Pick a song, the band loops its progression, and the neck shows what fits over the chord you're on."
+            to="/songs"
             delay="240ms"
           />
           <FeatureCard
-            icon={<Layers size={20} strokeWidth={1.5} />}
-            label="CAGED"
-            description="Learn the five shapes that tile the entire neck. Understand where you are in any key, anywhere on the fretboard."
-            to="/caged"
+            icon={<Map size={20} strokeWidth={1.5} />}
+            label="Explorer"
+            description="Visualize any scale across the full fretboard. Pick a key and a scale, and see every position at once."
+            to="/explore"
             delay="300ms"
-          />
-          <FeatureCard
-            icon={<Music2 size={20} strokeWidth={1.5} />}
-            label="Progressions"
-            description="Build chord progressions in any key. Hear the seven diatonic chords and see how they connect."
-            to="/progressions"
-            delay="360ms"
           />
           <FeatureCard
             icon={<Mic size={20} strokeWidth={1.5} />}
             label="Note Quiz"
             description="Train your ear. The app calls a note — you find it on your guitar, the mic checks the pitch."
             to="/quiz"
-            delay="420ms"
+            delay="360ms"
           />
         </div>
       </section>
