@@ -4,6 +4,7 @@ export type MarkerVariant =
   | 'root'      // root note — cream/ivory
   | 'scale'     // other scale note — stone
   | 'chord'     // chord tone (1st/3rd/5th degree) — terra-300
+  | 'outside'   // chord tone from outside the scale — the borrowed colour note
   | 'correct'   // quiz: correct answer — green
   | 'close1'    // 1 semitone off — yellow-green
   | 'close2'    // 2 semitones off — yellow
@@ -16,12 +17,15 @@ interface NoteMarkerProps {
   label?: string
   onClick?: () => void
   size?: number
+  /** Renders at reduced opacity — in the key, but not in the chord sounding now. */
+  muted?: boolean
 }
 
 const VARIANT_CLASSES: Record<MarkerVariant, string> = {
   root:    'bg-stone-200 text-stone-900 ring-2 ring-stone-300/60 font-bold',
   scale:   'bg-terra-300 text-stone-900 ring-1 ring-terra-200/60',
   chord:   'bg-sun-400 text-stone-900 ring-1 ring-sun-200/60',
+  outside: 'bg-ember-400 text-stone-900 ring-2 ring-ember-300/60 font-bold',
   correct: 'bg-sage-400 text-stone-900 ring-2 ring-sage-200/60 font-bold',
   close1:  'bg-sun-400 text-stone-900 ring-1 ring-sun-200/60',
   close2:  'bg-terra-200 text-stone-900 ring-1 ring-terra-200/60',
@@ -29,11 +33,12 @@ const VARIANT_CLASSES: Record<MarkerVariant, string> = {
   target:  'bg-ember-400 text-stone-900 ring-2 ring-ember-300/60 font-bold',
 }
 
-export default function NoteMarker({ note, label, variant, onClick, size = 28 }: NoteMarkerProps) {
+export default function NoteMarker({ note, label, variant, onClick, size = 28, muted }: NoteMarkerProps) {
   const display = label ?? note
   // Accessible label: include both degree label and note name if showing degrees
   const accessibleLabel = label ? `${label} (${note})` : note
-  const baseClasses = `rounded-full flex items-center justify-center transition-transform duration-100 font-mono ${VARIANT_CLASSES[variant]}`
+  // transition-all (not just transform) so the opacity fades when the chord moves.
+  const baseClasses = `rounded-full flex items-center justify-center transition-all duration-200 font-mono ${VARIANT_CLASSES[variant]} ${muted ? 'opacity-30' : 'opacity-100'}`
 
   if (onClick) {
     return (
