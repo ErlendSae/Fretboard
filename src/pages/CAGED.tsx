@@ -21,7 +21,7 @@ export default function CAGEDPage() {
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const scale = SCALES[isMajor ? MAJOR_IDX : MINOR_IDX]!
-  const { isPlaying, isLoading, toggle, bpm, setBpm } = useBackingTrack(root, scale)
+  const { isPlaying, isLoading, toggle, bpm, baseBpm, setBpm } = useBackingTrack(root, scale)
   useSpacebarToggle(toggle)
 
   const [fretMin, fretMax] = getCagedFretRange(root, shape)
@@ -99,11 +99,11 @@ export default function CAGEDPage() {
 
   const backingTrackContent = (
     <BackingTrackPanel
-      label={`${root} ${isMajor ? 'major' : 'minor'}`}
       isPlaying={isPlaying}
       isLoading={isLoading}
       toggle={toggle}
       bpm={bpm}
+      baseBpm={baseBpm}
       setBpm={setBpm}
     />
   )

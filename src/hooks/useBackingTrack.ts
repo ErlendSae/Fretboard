@@ -306,5 +306,5 @@ export function useBackingTrack(root: NoteName, scale: ScaleDef) {
   // Cleanup on unmount
   useEffect(() => () => { trackRef.current?.dispose() }, [])
 
-  return { isPlaying, isLoading, toggle, bpm, setBpm }
+  return { isPlaying, isLoading, toggle, bpm, setBpm, baseBpm: bpmForScale(scale) }
 }
