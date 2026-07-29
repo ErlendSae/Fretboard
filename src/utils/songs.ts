@@ -214,19 +214,34 @@ export const SONGS: readonly Song[] = [
   },
 ]
 
+interface GenreFamily {
+  name: string
+  genres: readonly string[]
+}
+
 /**
- * Genre display order, grouped into broad families. The picker shows one flat
- * grid rather than a heading per genre — there are more genres than songs per
- * genre — so this ordering is what puts related styles next to each other.
+ * Broad style families for the picker's genre filter.
+ *
+ * The per-song `genre` field is deliberately fine-grained (16 values across 24
+ * songs), which is useful as a label but useless as a filter — most genres hold
+ * one song. These families each hold 3–8, so filtering actually narrows.
  */
-const GENRE_ORDER: readonly string[] = [
-  'Blues', 'Blues rock',
-  'Rock', 'Classic rock', 'Southern rock', 'Prog rock', 'Instrumental rock',
-  'Metal', 'Grunge',
-  'Soul', 'Funk rock', 'Funk',
-  'Latin rock', 'Latin', 'Jazz', 'Jazz rock',
-  "Rock'n'roll", 'Reggae', 'Country',
+export const GENRE_FAMILIES: readonly GenreFamily[] = [
+  { name: 'Blues',        genres: ['Blues', 'Blues rock'] },
+  { name: 'Rock',         genres: ['Rock', 'Classic rock', 'Southern rock', 'Prog rock', 'Instrumental rock'] },
+  { name: 'Heavy',        genres: ['Metal', 'Grunge'] },
+  { name: 'Soul & Funk',  genres: ['Soul', 'Funk rock', 'Funk'] },
+  { name: 'Latin & Jazz', genres: ['Latin rock', 'Latin', 'Jazz', 'Jazz rock'] },
+  { name: 'Roots',        genres: ["Rock'n'roll", 'Reggae', 'Country'] },
 ]
+
+/** The family a song belongs to. 'Other' means its genre is missing above. */
+export function familyOf(song: Song): string {
+  return GENRE_FAMILIES.find(f => f.genres.includes(song.genre))?.name ?? 'Other'
+}
+
+/** Flattened family order — related styles stay adjacent within a family. */
+const GENRE_ORDER: readonly string[] = GENRE_FAMILIES.flatMap(f => f.genres)
 
 /** Unknown genres sort to the end rather than to the front. */
 function genreRank(genre: string): number {
