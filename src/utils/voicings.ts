@@ -189,6 +189,13 @@ const TEMPLATES: Record<ChordQuality, readonly VoicingTemplate[]> = {
   minor:      MINOR_TEMPLATES,
   diminished: DIMINISHED_TEMPLATES,
   augmented:  AUGMENTED_TEMPLATES,
+  // Seventh chords have no voicing templates here — fall back to the parent
+  // triad's shapes. This file is superseded by the Songs page and is scheduled
+  // for deletion; these entries exist only to satisfy the widened union.
+  dominant7:  MAJOR_TEMPLATES,
+  major7:     MAJOR_TEMPLATES,
+  minor7:     MINOR_TEMPLATES,
+  minor7b5:   DIMINISHED_TEMPLATES,
 }
 
 // ─── Transpose helper ─────────────────────────────────────────────────────────

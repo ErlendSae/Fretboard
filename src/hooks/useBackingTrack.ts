@@ -3,18 +3,13 @@ import * as Tone from 'tone'
 import { CHROMATIC_NOTES, noteIndex } from '../utils/notes'
 import type { NoteName } from '../utils/notes'
 import type { ScaleDef } from '../utils/scales'
-import { resolveProgression } from '../utils/chords'
-import type { ChordQuality, DiatonicChord, ProgressionPreset } from '../utils/chords'
+import { QUALITY_INTERVALS, resolveProgression } from '../utils/chords'
+import type { DiatonicChord, ProgressionPreset } from '../utils/chords'
 
 /** Build a Tone.js note string from root + semitone offset + octave. */
 function noteAt(root: NoteName, semitones: number, octave: number): string {
   const total = noteIndex(root) + semitones
   return `${CHROMATIC_NOTES[total % 12]}${octave + Math.floor(total / 12)}`
-}
-
-/** Semitone offsets above the chord root, per quality. */
-const CHORD_INTERVALS: Record<ChordQuality, [number, number]> = {
-  major: [4, 7], minor: [3, 7], diminished: [3, 6], augmented: [4, 8],
 }
 
 interface BarVoicing {
@@ -25,13 +20,16 @@ interface BarVoicing {
 }
 
 function voiceBar(chord: DiatonicChord): BarVoicing {
-  const [third, fifth] = CHORD_INTERVALS[chord.quality]
+  const intervals = QUALITY_INTERVALS[chord.quality]
+  const third = intervals[0] ?? 4
+  const fifth = intervals[1] ?? 7
   return {
+    // Full chord including any 7th, voiced where the sampled grand is strongest.
     piano: [
       noteAt(chord.root, 0, 3),
-      noteAt(chord.root, third, 3),
-      noteAt(chord.root, fifth, 3),
+      ...intervals.map(semis => noteAt(chord.root, semis, 3)),
     ],
+    // Bass stays root–fifth–root–third; a 7th down here muddies the low end.
     bass: [
       noteAt(chord.root, 0, 2),
       noteAt(chord.root, fifth, 2),
@@ -311,7 +309,7 @@ export function useBackingTrack(
 
   // One resolved chord per bar, or null when there is no usable progression
   // (none selected, or the scale has no diatonic triads to build chords from).
-  const progression = preset ? resolveProgression(root, scale, preset) : null
+  const progression = preset ? resolveProgression(root, scale, preset.chords) : null
 
   const bars: BarVoicing[] = progression
     ? progression.map(voiceBar)
