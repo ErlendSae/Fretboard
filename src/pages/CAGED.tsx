@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
-import Fretboard, { type FretMarker } from '../components/Fretboard'
+import Fretboard from '../components/Fretboard'
 import BackingTrackPanel from '../components/BackingTrackPanel'
 import { ControlLabel, SelectInput } from '../components/ui'
-import { CHROMATIC_NOTES, type NoteName, NUM_STRINGS, fretToNote, noteIndex } from '../utils/notes'
-import { SCALES, getScaleNotes } from '../utils/scales'
+import { CHROMATIC_NOTES, type NoteName } from '../utils/notes'
+import { SCALES } from '../utils/scales'
 import { getCagedFretRange, CAGED_SHAPES, SHAPE_INFO, type CagedShape } from '../utils/caged'
+import { buildScaleMarkers } from '../utils/scaleMarkers'
 import { useBackingTrack } from '../hooks/useBackingTrack'
 
 const MAJOR_IDX = SCALES.findIndex(s => s.name === 'Major (Ionian)')
@@ -34,33 +35,8 @@ export default function CAGEDPage() {
     return () => document.removeEventListener('keydown', onKey)
   }, [])
 
-  const scaleNotes = getScaleNotes(root, scale)
-  const rootIdx = noteIndex(root)
-
-  const chordToneNotes = new Set<NoteName>()
-  for (const degIdx of [0, 2, 4]) {
-    const semitone = scale.intervals[degIdx]
-    if (semitone !== undefined) {
-      chordToneNotes.add(CHROMATIC_NOTES[(rootIdx + semitone) % 12]!)
-    }
-  }
-
   const [fretMin, fretMax] = getCagedFretRange(root, shape)
-
-  const markers: FretMarker[] = []
-
-  // Selected shape — full treatment
-  for (let s = 0; s < NUM_STRINGS; s++) {
-    for (let f = fretMin; f <= fretMax; f++) {
-      const note = fretToNote(s, f)
-      if (!scaleNotes.has(note)) continue
-      const variant: FretMarker['variant'] =
-        note === root ? 'root'
-        : chordToneNotes.has(note) ? 'chord'
-        : 'scale'
-      markers.push({ stringIndex: s, fret: f, variant })
-    }
-  }
+  const markers = buildScaleMarkers({ root, scale, fretRange: [fretMin, fretMax] })
 
   const shapeIdx = CAGED_SHAPES.indexOf(shape)
   const prevShape = CAGED_SHAPES[(shapeIdx + CAGED_SHAPES.length - 1) % CAGED_SHAPES.length]!
