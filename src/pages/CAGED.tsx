@@ -3,7 +3,7 @@ import { SlidersHorizontal } from 'lucide-react'
 import Fretboard from '../components/Fretboard'
 import BackingTrackPanel from '../components/BackingTrackPanel'
 import FretboardLegend from '../components/FretboardLegend'
-import { ControlLabel, SelectInput } from '../components/ui'
+import { ControlLabel, LabeledField, SegmentedControl, SelectInput } from '../components/ui'
 import { CHROMATIC_NOTES, type NoteName } from '../utils/notes'
 import { SCALES } from '../utils/scales'
 import { getCagedFretRange, CAGED_SHAPES, SHAPE_INFO, type CagedShape } from '../utils/caged'
@@ -17,82 +17,44 @@ const MINOR_IDX = SCALES.findIndex(s => s.name === 'Natural Minor (Aeolian)')
 export default function CAGEDPage() {
   const [root, setRoot] = useState<NoteName>('C')
   const [isMajor, setIsMajor] = useState(true)
-  const [shape, setShape] = useState<CagedShape>('C')
+  // null = no shape outlined. The five windows union to the whole neck
+  // (see utils/caged.ts), so the full neck IS "all shapes" — a shape is an
+  // orientation aid you switch on, never a filter you must operate.
+  const [shape, setShape] = useState<CagedShape | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const scale = SCALES[isMajor ? MAJOR_IDX : MINOR_IDX]!
   const { isPlaying, isLoading, toggle, bpm, baseBpm, setBpm } = useBackingTrack(root, scale)
   useSpacebarToggle(toggle)
 
-  const [fretMin, fretMax] = getCagedFretRange(root, shape)
-  const markers = buildScaleMarkers({ root, scale, fretRange: [fretMin, fretMax] })
-
-  const shapeIdx = CAGED_SHAPES.indexOf(shape)
-  const prevShape = CAGED_SHAPES[(shapeIdx + CAGED_SHAPES.length - 1) % CAGED_SHAPES.length]!
-  const nextShape = CAGED_SHAPES[(shapeIdx + 1) % CAGED_SHAPES.length]!
-  const info = SHAPE_INFO[shape]
+  const markers = buildScaleMarkers({ root, scale })
+  const outlineRange = shape ? getCagedFretRange(root, shape) : null
+  const info = shape ? SHAPE_INFO[shape] : null
 
   const controlsContent = (
     <>
-      <div className="space-y-2">
-        <ControlLabel htmlFor="caged-key">Key</ControlLabel>
+      <LabeledField label="Key">
         <SelectInput
-          id="caged-key"
           fullWidth
           value={root}
           onChange={e => setRoot(e.target.value as NoteName)}
         >
           {CHROMATIC_NOTES.map(n => <option key={n} value={n}>{n}</option>)}
         </SelectInput>
-      </div>
+      </LabeledField>
 
       <div className="space-y-2">
         <ControlLabel>Scale</ControlLabel>
-        <div className="flex rounded-lg overflow-hidden border border-stone-200/10 text-sm font-medium">
-          {(['Major', 'Minor'] as const).map((opt) => {
-            const isActive = isMajor === (opt === 'Major')
-            return (
-              <button
-                key={opt}
-                onClick={() => setIsMajor(opt === 'Major')}
-                className={`flex-1 px-3 py-2 transition-colors duration-150
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-terra-500
-                  ${isActive ? 'bg-terra-500 text-stone-200' : 'bg-stone-800 text-stone-400 hover:text-stone-200'}`}
-              >
-                {opt}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <ControlLabel>Shape</ControlLabel>
-        <div className="space-y-1">
-          {CAGED_SHAPES.map(s => {
-            const [lo, hi] = getCagedFretRange(root, s)
-            const isActive = shape === s
-            return (
-              <button
-                key={s}
-                onClick={() => { setShape(s); setSheetOpen(false) }}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-left
-                  transition-all duration-150 active:scale-95
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500
-                  focus-visible:ring-offset-1 focus-visible:ring-offset-stone-950
-                  ${isActive
-                    ? 'bg-terra-500 border-terra-400 text-stone-200'
-                    : 'border-transparent hover:border-stone-200/10 hover:bg-stone-800/60 text-stone-400'
-                  }`}
-              >
-                <span className="font-mono font-bold text-sm">{s}</span>
-                <span className={`font-mono text-xs ${isActive ? 'text-terra-100' : 'text-stone-600'}`}>
-                  frets {lo}–{hi}
-                </span>
-              </button>
-            )
-          })}
-        </div>
+        <SegmentedControl
+          options={[
+            { value: 'major', label: 'Major' },
+            { value: 'minor', label: 'Minor' },
+          ]}
+          value={isMajor ? 'major' : 'minor'}
+          onChange={(v) => setIsMajor(v === 'major')}
+          ariaLabel="Major or minor"
+          fullWidth
+        />
       </div>
     </>
   )
@@ -122,26 +84,24 @@ export default function CAGEDPage() {
       {/* ── Main ─────────────────────────────────────────────────────────────── */}
       <div className="flex-1 min-w-0 overflow-auto px-4 sm:px-6 py-4 sm:py-6 space-y-5">
 
-        <div className="animate-fade-up" style={{ animationDelay: '0ms' }}>
-          <p className="text-[11px] font-semibold text-stone-500 tracking-[0.12em] uppercase mb-1.5">CAGED</p>
-          <h1 className="font-display font-semibold text-stone-200 text-[2.375rem] leading-[1.05] tracking-[-0.02em]">
-            <span className="text-terra-400">{shape}</span>{' '}
-            <span className="font-normal text-stone-400">— {root} {isMajor ? 'major' : 'minor'}</span>
-          </h1>
-          <p className="text-stone-400 text-sm mt-2">
-            Five shapes named after open chords tile the entire neck. Navigate them to cover every position.
-          </p>
-        </div>
+        <h1 className="animate-fade-up font-display font-semibold text-stone-200 text-[2.375rem] leading-[1.05] tracking-[-0.02em]">
+          <span className="text-terra-400">{root}</span>{' '}
+          <span className="font-normal text-stone-400">{isMajor ? 'major' : 'minor'}</span>
+        </h1>
+        <p className="text-stone-400 text-sm">
+          The whole neck, in one key. Tap a shape to see where that box sits.
+        </p>
 
-        {/* Shape selector row — letter + fret range, plus "All shapes" toggle */}
-        <div className="flex gap-2 items-start animate-fade-up" style={{ animationDelay: '60ms' }}>
+        {/* Shape row — a toggle, not a filter. Tapping the active shape clears it. */}
+        <div className="flex gap-2 items-start" role="group" aria-label="Highlight a CAGED shape">
           {CAGED_SHAPES.map(s => {
             const [lo, hi] = getCagedFretRange(root, s)
             const isActive = shape === s
             return (
               <button
                 key={s}
-                onClick={() => setShape(s)}
+                onClick={() => setShape(isActive ? null : s)}
+                aria-pressed={isActive}
                 className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-xl border
                   transition-all duration-150 active:scale-95
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500
@@ -160,45 +120,35 @@ export default function CAGEDPage() {
           })}
         </div>
 
-        <div className="animate-fade-up" style={{ animationDelay: '120ms' }}>
-          <Fretboard markers={markers} />
-        </div>
+        <Fretboard
+          markers={markers}
+          outline={outlineRange && shape ? { fretRange: outlineRange, label: shape } : undefined}
+        />
 
         <FretboardLegend rootNote={root} />
 
-        {/* Info card */}
-        <div className="bg-stone-800/60 border border-stone-200/10 rounded-xl p-5 space-y-3 animate-fade-up" style={{ animationDelay: '180ms' }}>
-          <div className="flex items-start justify-between gap-4 flex-wrap">
+        {/* Info card — only while a shape is highlighted */}
+        {info && shape && outlineRange && (
+          <div className="bg-stone-800/60 border border-stone-200/10 rounded-xl p-5 space-y-3">
             <div>
               <p className="text-[11px] font-medium text-stone-500 tracking-wide uppercase mb-1">
                 {info.openChord}
               </p>
               <p className="text-stone-100 font-semibold">
-                {shape} shape · frets {fretMin}–{fretMax}
+                {shape} shape · frets {outlineRange[0]}–{outlineRange[1]}
               </p>
               <p className="text-stone-500 text-xs mt-0.5">Root on the {info.anchorStringName}</p>
             </div>
-            <div className="flex gap-1.5 shrink-0">
-              <button
-                onClick={() => setShape(prevShape)}
-                aria-label={`Previous shape: ${prevShape}`}
-                className="px-2.5 py-1.5 rounded-lg border border-stone-200/10 text-stone-400 text-xs font-mono
-                  hover:border-stone-200/20 hover:text-stone-200 transition-all duration-150 active:scale-95"
-              >
-                ← {prevShape}
-              </button>
-              <button
-                onClick={() => setShape(nextShape)}
-                aria-label={`Next shape: ${nextShape}`}
-                className="px-2.5 py-1.5 rounded-lg border border-stone-200/10 text-stone-400 text-xs font-mono
-                  hover:border-stone-200/20 hover:text-stone-200 transition-all duration-150 active:scale-95"
-              >
-                {nextShape} →
-              </button>
-            </div>
+            <p className="text-stone-400 text-sm leading-relaxed">{info.tip}</p>
+            {!isMajor && (
+              <p className="text-stone-500 text-xs leading-relaxed">
+                The five shapes are named after the open <em>major</em> chord forms — that is where
+                the fingering comes from. In a minor key the box marks the same stretch of neck, but
+                the notes inside it are {root} minor.
+              </p>
+            )}
           </div>
-          <p className="text-stone-400 text-sm leading-relaxed">{info.tip}</p>
-        </div>
+        )}
 
       </div>
 
