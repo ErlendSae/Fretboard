@@ -32,7 +32,7 @@ export default function Explorer() {
   const [sheetOpen, setSheetOpen] = useState(false)
 
   const scale = SCALES[scaleIdx]!
-  const { isPlaying, isLoading, toggle, bpm, setBpm } = useBackingTrack(root, scale)
+  const { isPlaying, isLoading, toggle, bpm, baseBpm, setBpm } = useBackingTrack(root, scale)
   useSpacebarToggle(toggle)
 
   const posRange = POSITIONS[positionIdx]!.range
@@ -167,11 +167,11 @@ export default function Explorer() {
   // Backing track JSX — used in both sidebar and bottom sheet
   const backingTrackContent = (
     <BackingTrackPanel
-      label={`${root} ${scale.name}`}
       isPlaying={isPlaying}
       isLoading={isLoading}
       toggle={toggle}
       bpm={bpm}
+      baseBpm={baseBpm}
       setBpm={setBpm}
     />
   )
