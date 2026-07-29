@@ -4,7 +4,7 @@ import { CHROMATIC_NOTES, noteIndex } from '../utils/notes'
 import type { NoteName } from '../utils/notes'
 import type { ScaleDef } from '../utils/scales'
 import { QUALITY_INTERVALS, resolveProgression } from '../utils/chords'
-import type { DiatonicChord, ProgressionPreset } from '../utils/chords'
+import type { ChordSpec, DiatonicChord } from '../utils/chords'
 
 /** Build a Tone.js note string from root + semitone offset + octave. */
 function noteAt(root: NoteName, semitones: number, octave: number): string {
@@ -296,10 +296,15 @@ function startTrack(
   }
 }
 
+/**
+ * @param chords Bars to loop, or null/empty for a one-bar tonic vamp.
+ *   MUST be a stable reference (e.g. straight off a SONGS entry) — an inline
+ *   array literal changes identity every render and would restart the track.
+ */
 export function useBackingTrack(
   root: NoteName,
   scale: ScaleDef,
-  preset?: ProgressionPreset | null,
+  chords?: readonly ChordSpec[] | null,
 ) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -309,7 +314,9 @@ export function useBackingTrack(
 
   // One resolved chord per bar, or null when there is no usable progression
   // (none selected, or the scale has no diatonic triads to build chords from).
-  const progression = preset ? resolveProgression(root, scale, preset.chords) : null
+  const progression = chords && chords.length > 0
+    ? resolveProgression(root, scale, chords)
+    : null
 
   const bars: BarVoicing[] = progression
     ? progression.map(voiceBar)
@@ -356,10 +363,10 @@ export function useBackingTrack(
     } finally {
       setIsLoading(false)
     }
-    // `bars` is derived fresh each render from root/scale/preset, which are all
+    // `bars` is derived fresh each render from root/scale/chords, which are all
     // already deps — listing it directly would rebuild this callback every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlaying, isLoading, root, scale, preset, bpm, stop])
+  }, [isPlaying, isLoading, root, scale, chords, bpm, stop])
 
   // Restart seamlessly when root/scale/progression changes while playing.
   // Safe to read `instruments` directly here — isPlaying can only be true
@@ -367,7 +374,7 @@ export function useBackingTrack(
   // the closure, not the deps: a bpm change alone must NOT restart the
   // track (setBpm ramps the live transport instead), and on scale change
   // the render-time reset above guarantees this closure sees the new
-  // genre default. `preset` must be here or the audio and the neck desync
+  // genre default. `chords` must be here or the audio and the neck desync
   // when the progression changes mid-play.
   useEffect(() => {
     if (!isPlaying || !instruments) return
@@ -375,7 +382,7 @@ export function useBackingTrack(
     setCurrentBar(null)
     trackRef.current = startTrack(instruments, bpm, bars, setCurrentBar)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [root, scale, preset])
+  }, [root, scale, chords])
 
   // Cleanup on unmount
   useEffect(() => () => { trackRef.current?.dispose() }, [])
@@ -384,5 +391,7 @@ export function useBackingTrack(
     isPlaying, isLoading, toggle, bpm, setBpm,
     baseBpm: bpmForScale(scale),
     currentChord,
+    currentBar,
+    barCount: progression?.length ?? 0,
   }
 }

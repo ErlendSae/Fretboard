@@ -30,7 +30,7 @@ export default function CAGEDPage() {
   const preset = presets[progressionIdx] ?? null
 
   const { isPlaying, isLoading, toggle, bpm, baseBpm, setBpm, currentChord } =
-    useBackingTrack(root, scale, preset)
+    useBackingTrack(root, scale, preset?.chords)
   useSpacebarToggle(toggle)
 
   const markers = buildScaleMarkers({
