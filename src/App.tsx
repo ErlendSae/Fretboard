@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, Link } from 'react-router-dom'
 import { BarChart2, Guitar, Layers, Music2, Mic } from 'lucide-react'
 import Explorer from './pages/Explorer'
+import Songs from './pages/Songs'
 import Landing from './pages/Landing'
 import CAGEDPage from './pages/CAGED'
 import Progressions from './pages/Progressions'
@@ -13,6 +14,7 @@ const Auth = lazy(() => import('./pages/Auth'))
 const Stats = lazy(() => import('./pages/Stats'))
 
 const NAV_LINKS = [
+  { to: '/songs',        label: 'Songs',       end: false, Icon: Music2    },
   { to: '/explore',      label: 'Explorer',    end: false, Icon: Guitar    },
   { to: '/caged',        label: 'CAGED',       end: false, Icon: Layers    },
   { to: '/progressions', label: 'Progressions',end: false, Icon: Music2    },
@@ -155,6 +157,7 @@ export default function App() {
           <Suspense fallback={<div className="flex-1 bg-stone-900" />}>
             <Routes>
               <Route path="/"             element={<Landing />} />
+              <Route path="/songs"        element={<Songs />} />
               <Route path="/explore"      element={<Explorer />} />
               <Route path="/caged"        element={<CAGEDPage />} />
               <Route path="/progressions" element={<Progressions />} />
