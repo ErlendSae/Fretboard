@@ -216,6 +216,49 @@ export const VAMPS: readonly Vamp[] = [
 ]
 
 /**
+ * VAMPS' labels are static Roman-numeral strings — they describe the chords
+ * that come out of Ionian and Aeolian only. Every other seven-note mode
+ * harmonises differently, so the same label would lie. Two examples:
+ * Lydian's IV is a diminished chord (raised 4th), not the major IV the label
+ * i–IV–V–IV implies; Locrian's i is itself diminished, so there is no stable
+ * tonic to vamp on at all. Only these five scales are safe to offer a vamp
+ * for; everyone else gets the drone.
+ *
+ * Keyed on scale.name like VAMP_PARENT_SCALE below — see the safety net on
+ * vampsFor for what happens if one of these names drifts out of sync.
+ */
+const VAMPS_SUPPORTED_SCALES: ReadonlySet<string> = new Set([
+  'Major (Ionian)',
+  'Pentatonic Major',
+  'Natural Minor (Aeolian)',
+  'Pentatonic Minor',
+  'Blues',
+])
+
+/**
+ * The vamps that honestly describe `scale`'s harmony, filtered to its
+ * tonality. Returns `[]` for any scale outside VAMPS_SUPPORTED_SCALES — an
+ * empty result means "drone only", and callers must not fall back to an
+ * unfiltered vamp list.
+ *
+ * The `every` check is redundant today (VAMPS_SUPPORTED_SCALES was chosen to
+ * only contain names that filter to exactly 3) but turns a future typo or
+ * rename of a scale/vamp name into a thrown error during development rather
+ * than a silently wrong or empty list in production.
+ */
+export function vampsFor(scale: ScaleDef): readonly Vamp[] {
+  if (!VAMPS_SUPPORTED_SCALES.has(scale.name)) return []
+  const tonality = isMinorTonality(scale) ? 'minor' : 'major'
+  const filtered = VAMPS.filter(v => v.tonality === tonality)
+  if (filtered.length !== 3) {
+    throw new Error(
+      `vampsFor(${scale.name}): expected 3 vamps of tonality "${tonality}", got ${filtered.length} — VAMPS_SUPPORTED_SCALES or VAMPS has drifted`,
+    )
+  }
+  return filtered
+}
+
+/**
  * Scales with fewer than seven notes have no diatonic triads, so
  * getDiatonicChords returns null and no vamp can be built from them. They
  * borrow the harmony of their parent scale instead.

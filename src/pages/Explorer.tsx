@@ -11,8 +11,8 @@ import {
   SelectInput,
 } from '../components/ui'
 import { CHROMATIC_NOTES, type NoteName } from '../utils/notes'
-import { SCALES, type ScaleDef } from '../utils/scales'
-import { VAMPS, isMinorTonality, vampScale } from '../utils/chords'
+import { SCALES } from '../utils/scales'
+import { isMinorTonality, vampScale, vampsFor } from '../utils/chords'
 import { buildScaleMarkers } from '../utils/scaleMarkers'
 import { getPositions } from '../utils/positions'
 import { useBackingTrack } from '../hooks/useBackingTrack'
@@ -20,11 +20,6 @@ import { useSpacebarToggle } from '../hooks/useSpacebarToggle'
 
 /** Sentinel for "no progression — tonic only", the hook's no-chords path. */
 const DRONE = -1
-
-function vampsFor(scale: ScaleDef) {
-  const tonality = isMinorTonality(scale) ? 'minor' : 'major'
-  return VAMPS.filter(v => v.tonality === tonality)
-}
 
 export default function Explorer() {
   const [root, setRoot] = useState<NoteName>('A')
@@ -40,7 +35,10 @@ export default function Explorer() {
   const focusRange = positionIdx !== null ? positions[positionIdx]!.fretRange : undefined
 
   const vamps = vampsFor(scale)
-  const vamp = vampIdx === DRONE ? null : vamps[vampIdx] ?? null
+  // A scale with no honest vamps is drone-only, so the select must not keep
+  // pointing at an index that no longer exists.
+  const effectiveVampIdx = vamps.length === 0 ? DRONE : vampIdx
+  const vamp = effectiveVampIdx === DRONE ? null : vamps[effectiveVampIdx] ?? null
 
   // Pentatonic and blues have no diatonic triads, so the vamp is built from
   // the parent scale. The neck below still draws `scale` — only the harmony
@@ -87,7 +85,7 @@ export default function Explorer() {
       <LabeledField label="Vamp">
         <SelectInput
           fullWidth
-          value={vampIdx}
+          value={effectiveVampIdx}
           onChange={(e) => setVampIdx(Number(e.target.value))}
         >
           <option value={DRONE}>Drone — tonic only</option>
