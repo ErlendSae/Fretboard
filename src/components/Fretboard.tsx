@@ -53,15 +53,22 @@ export default function Fretboard({ markers = [], onFretClick, clickableStrings,
   const scrollerRef = useRef<HTMLDivElement>(null)
   const [canScrollRight, setCanScrollRight] = useState(false)
 
-  // Scroll the selected position's window into view. Runs only when
-  // `focusRange` itself changes — not on every render — so it never fights
-  // the user's own manual scrolling. Selecting "All" (focusRange undefined)
-  // is a no-op by design.
+  // Callers (e.g. Explorer) recompute `focusRange` as a fresh array/object
+  // on every render, so its identity is not a reliable dep — depend on the
+  // two primitives it actually carries instead.
+  const focusLow = focusRange?.[0]
+  const focusHigh = focusRange?.[1]
+
+  // Scroll the selected position's window into view. Runs only when the
+  // window's fret bounds actually change — not on every render — so it
+  // never fights the user's own manual scrolling. Selecting "All"
+  // (focusRange undefined) is a no-op by design.
   useEffect(() => {
     const el = scrollerRef.current
-    if (!el || !focusRange) return
+    if (!el || focusLow === undefined || focusHigh === undefined) return
 
-    const [low, high] = focusRange
+    const low = focusLow
+    const high = focusHigh
     // Each fret's clickable cell spans from the previous fret line to its
     // own, so the window runs from the start of `low`'s cell to the end of
     // `high`'s — matching what the dimmed/lit markers actually occupy.
@@ -85,7 +92,7 @@ export default function Fretboard({ markers = [], onFretClick, clickableStrings,
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     el.scrollTo({ left: scrollLeft, behavior: prefersReducedMotion ? 'auto' : 'smooth' })
-  }, [focusRange])
+  }, [focusLow, focusHigh])
 
   // Track whether there's more neck to the right than is currently visible,
   // so the fade only ever shows when it's telling the truth.
