@@ -25,16 +25,21 @@ const BUTTON_IDLE =
  * Lives above the neck rather than in the sidebar: it is the control touched
  * most often during practice, and below `md` the sidebar is a bottom sheet
  * that would have to be opened for every change.
+ *
+ * Uses `radiogroup` semantics (exactly one of six is always checked) rather than
+ * `SegmentedControl`, which takes single-line labels. Here we need two lines
+ * (Roman numeral over fret range) in gapped `rounded-xl` cards, not joined segments.
  */
 export default function PositionRow({ positions, selected, onSelect }: PositionRowProps) {
   const active = selected !== null ? positions[selected] : undefined
 
   return (
     <div className="space-y-2">
-      <div className="flex gap-2" role="group" aria-label="Practice position">
+      <div className="flex gap-2" role="radiogroup" aria-label="Practice position">
         <button
+          role="radio"
           onClick={() => onSelect(null)}
-          aria-pressed={selected === null}
+          aria-checked={selected === null}
           className={`${BUTTON_BASE} ${selected === null ? BUTTON_ACTIVE : BUTTON_IDLE}`}
         >
           <span className="font-mono font-bold text-lg leading-none">All</span>
@@ -52,9 +57,12 @@ export default function PositionRow({ positions, selected, onSelect }: PositionR
           return (
             <button
               key={p.numeral}
+              role="radio"
               // Tapping the active position clears it back to All.
+              // Radio semantics still describe the resulting state correctly
+              // (exactly one checked at all times); this toggle is an alternate path to All.
               onClick={() => onSelect(isActive ? null : i)}
-              aria-pressed={isActive}
+              aria-checked={isActive}
               className={`${BUTTON_BASE} ${isActive ? BUTTON_ACTIVE : BUTTON_IDLE}`}
             >
               <span className="font-mono font-bold text-lg leading-none">{p.numeral}</span>
