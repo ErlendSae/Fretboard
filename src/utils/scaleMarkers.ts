@@ -29,8 +29,13 @@ function chordToneNotes(root: NoteName, scale: ScaleDef): Set<NoteName> {
 export interface ScaleMarkerOptions {
   root: NoteName
   scale: ScaleDef
-  /** Inclusive [low, high] fret window. Omit for the whole neck. */
-  fretRange?: [number, number]
+  /**
+   * Inclusive [low, high] fret window to practise in. Markers outside it are
+   * dimmed rather than omitted, so the neighbouring positions stay visible —
+   * that is what makes shifting between boxes learnable rather than a blind
+   * jump. Omit to leave the whole neck at full strength.
+   */
+  focusRange?: [number, number]
   /** Label markers with scale degrees ("b3") instead of note names. */
   showDegrees?: boolean
   /**
@@ -47,16 +52,15 @@ export interface ScaleMarkerOptions {
  * Pure — no React, no module state.
  */
 export function buildScaleMarkers({
-  root, scale, fretRange, showDegrees, outsideNotes,
+  root, scale, focusRange, showDegrees, outsideNotes,
 }: ScaleMarkerOptions): FretMarker[] {
   const scaleNotes = getScaleNotes(root, scale)
   const chordTones = chordToneNotes(root, scale)
   const rootIdx = noteIndex(root)
-  const [lo, hi] = fretRange ?? [0, NUM_FRETS]
 
   const markers: FretMarker[] = []
   for (let s = 0; s < NUM_STRINGS; s++) {
-    for (let f = lo; f <= hi; f++) {
+    for (let f = 0; f <= NUM_FRETS; f++) {
       const note = fretToNote(s, f)
       const inScale = scaleNotes.has(note)
       const isOutside = !inScale && (outsideNotes?.has(note) ?? false)
@@ -74,6 +78,7 @@ export function buildScaleMarkers({
         fret: f,
         variant,
         label: showDegrees ? DEGREE_LABELS[interval]! : undefined,
+        muted: focusRange ? f < focusRange[0] || f > focusRange[1] : undefined,
       })
     }
   }
