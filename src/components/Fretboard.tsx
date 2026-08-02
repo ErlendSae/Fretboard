@@ -38,7 +38,7 @@ const MARKER_SIZE = 26
 const STRING_LABEL_WIDTH = 24 // px reserved left of nut for string name labels
 // Slack, in px, tolerated before we consider the scroller "not fully scrolled" —
 // avoids the fade flickering on sub-pixel scroll positions.
-const SCROLL_EPSILON = 4
+const SCROLL_EPSILON = 2
 
 export default function Fretboard({ markers = [], onFretClick, clickableStrings, focusRange }: FretboardProps) {
   const neckHeight = (NUM_STRINGS - 1) * STRING_GAP + NECK_PADDING_V * 2
@@ -96,13 +96,20 @@ export default function Fretboard({ markers = [], onFretClick, clickableStrings,
     const update = () => {
       setCanScrollRight(el.scrollWidth - el.clientWidth - el.scrollLeft > SCROLL_EPSILON)
     }
-    update()
+    // Deferred one frame so we always read post-layout metrics — a resize
+    // (e.g. a breakpoint crossing that changes the sidebar's width) can
+    // dispatch before the reflow it causes has fully settled, which would
+    // otherwise leave the fade stuck showing a size that no longer exists.
+    const scheduleUpdate = () => requestAnimationFrame(update)
 
-    el.addEventListener('scroll', update, { passive: true })
-    window.addEventListener('resize', update)
+    update()
+    scheduleUpdate()
+
+    el.addEventListener('scroll', scheduleUpdate, { passive: true })
+    window.addEventListener('resize', scheduleUpdate)
     return () => {
-      el.removeEventListener('scroll', update)
-      window.removeEventListener('resize', update)
+      el.removeEventListener('scroll', scheduleUpdate)
+      window.removeEventListener('resize', scheduleUpdate)
     }
   }, [])
 
