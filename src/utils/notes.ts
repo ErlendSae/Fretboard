@@ -15,10 +15,13 @@ export const OPEN_STRING_MIDI: readonly number[] = [40, 45, 50, 55, 59, 64]
 export const STRING_NAMES = ['E', 'A', 'D', 'G', 'B', 'e'] as const
 
 export const NUM_STRINGS = 6
-export const NUM_FRETS = 12 // frets 0–12 displayed
+// 15, not 12: the five scale positions (see utils/positions.ts) start as high
+// as fret 11 and span 5 frets, so 15 is the exact number that fits every
+// position in every key with nothing clamped.
+export const NUM_FRETS = 15 // frets 0–15 displayed
 
 /** Standard fret position markers */
-export const FRET_MARKERS = [3, 5, 7, 9, 12] as const
+export const FRET_MARKERS = [3, 5, 7, 9, 12, 15] as const
 
 /** Return note name for a given MIDI pitch */
 export function midiToNote(midi: number): NoteName {
