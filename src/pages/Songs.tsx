@@ -7,7 +7,7 @@ import NeckPageLayout from '../components/NeckPageLayout'
 import SongPicker from '../components/SongPicker'
 import { ControlLabel } from '../components/ui'
 import { buildScaleMarkers } from '../utils/scaleMarkers'
-import { SONGS_BY_STYLE, resolveSong, shortKeyLabel } from '../utils/songs'
+import { SONGS_BY_STYLE, outsideNotesOf, resolveSong, shortKeyLabel } from '../utils/songs'
 import { useBackingTrack } from '../hooks/useBackingTrack'
 import { useSpacebarToggle } from '../hooks/useSpacebarToggle'
 
@@ -25,11 +25,22 @@ export default function Songs() {
     useBackingTrack(resolved.root, resolved.scale, song.chords)
   useSpacebarToggle(toggle)
 
+  // The shape belongs to the key and stays put for the whole song — a neck that
+  // repaints every bar is unplayable to practise against, and the key is what
+  // you solo over. The one exception is a borrowed chord's colour note, which
+  // the key does not contain: that single dot appears for its bar and leaves.
+  // Everything else about the harmony is tracked in the bar strip and the
+  // chord name below.
+  const barOutside = currentChord ? outsideNotesOf(resolved, [currentChord]) : undefined
   const markers = buildScaleMarkers({
     root: resolved.root,
     scale: resolved.scale,
-    emphasize: currentChord ? new Set(currentChord.notes) : undefined,
+    outsideNotes: barOutside,
   })
+
+  // Only the five songs with borrowed chords ever show an ember dot, so only
+  // they get the legend entry explaining it.
+  const hasOutside = outsideNotesOf(resolved, resolved.bars).size > 0
 
   // Sidebar is read-only: the song sets its own key, and choosing a song
   // happens in the picker below the neck.
@@ -63,7 +74,7 @@ export default function Songs() {
 
       <Fretboard markers={markers} />
 
-      <FretboardLegend rootNote={resolved.root} />
+      <FretboardLegend rootNote={resolved.root} showOutside={hasOutside} />
 
       <SongPicker songs={PLAYABLE} selectedIndex={songIdx} onSelect={setSongIdx} />
     </NeckPageLayout>

@@ -1,5 +1,5 @@
 import type { NoteName } from './notes'
-import { SCALES, type ScaleDef } from './scales'
+import { SCALES, getScaleNotes, type ScaleDef } from './scales'
 import { resolveProgression, type ChordSpec, type DiatonicChord } from './chords'
 
 export interface Song {
@@ -52,6 +52,26 @@ export const SONGS: readonly Song[] = [
       { degree: 0, quality: 'minor7', bars: 2 },
     ],
     note: 'A minor 12-bar. The V is a dominant 7th rather than a minor chord, so for that one bar a note from outside the key becomes available — that is where the tension lives.',
+  },
+  {
+    title: "Nobody Knows You When You're Down and Out", artist: 'Eric Clapton',
+    root: 'C', scaleName: 'Major (Ionian)', genre: 'Blues', bpm: 96,
+    chords: [
+      { degree: 0 },                                 // C
+      { degree: 2, quality: 'dominant7' },           // E7  — III7
+      { degree: 5, quality: 'dominant7', bars: 2 },  // A7  — VI7
+      { degree: 1, quality: 'dominant7', bars: 2 },  // D7  — II7
+      { degree: 4, quality: 'dominant7', bars: 2 },  // G7  — V7
+      { degree: 0 },                                 // C
+      { degree: 0, quality: 'dominant7' },           // C7  — turns into the IV
+      { degree: 3 },                                 // F
+      { degree: 3, quality: 'minor' },               // Fm  — the borrowed iv
+      { degree: 0 },                                 // C
+      { degree: 5, quality: 'dominant7' },           // A7
+      { degree: 1, quality: 'dominant7' },           // D7
+      { degree: 4, quality: 'dominant7' },           // G7
+    ],
+    note: 'The Unplugged reading of a 1923 blues, in its 16-bar form. E7–A7–D7–G7 is a chain of dominants walking the circle of fifths home to C, and each one needs a note C major does not have — G#, then C#, then F#, plus the C7 flat seventh and the Fm minor third (written A# and G#, since the app spells everything with sharps). Nine of the sixteen bars go outside the key, so this is the one song here you cannot play with a single shape: follow the ember dot.',
   },
   {
     title: 'Sultans of Swing', artist: 'Dire Straits',
@@ -286,4 +306,20 @@ export function resolveSong(song: Song): ResolvedSong | null {
   const bars = resolveProgression(song.root, scale, song.chords)
   if (!bars) return null
   return { root: song.root, scale, bars }
+}
+
+/**
+ * Chord tones that fall outside the song's key — the borrowed colour notes.
+ *
+ * A borrowed chord (a major V in a minor key, a dominant 7th in a blues) needs
+ * a note the key does not contain, so it has no scale marker of its own. Pass
+ * one bar to show that bar's colour note; pass every bar to ask whether the
+ * song has any at all. Five of the songs above do.
+ */
+export function outsideNotesOf(
+  resolved: ResolvedSong,
+  chords: readonly DiatonicChord[],
+): Set<NoteName> {
+  const inKey = getScaleNotes(resolved.root, resolved.scale)
+  return new Set(chords.flatMap(c => c.notes).filter(n => !inKey.has(n)))
 }
