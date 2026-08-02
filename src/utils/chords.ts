@@ -1,5 +1,5 @@
 import { CHROMATIC_NOTES, type NoteName, noteIndex } from './notes'
-import type { ScaleDef } from './scales'
+import { SCALES, type ScaleDef } from './scales'
 
 export type ChordQuality =
   | 'major' | 'minor' | 'diminished' | 'augmented'
@@ -156,8 +156,87 @@ export function resolveProgression(
   return out.length > 0 ? out : null
 }
 
-/** True if the scale has a minor third on degree 2 (minor tonality). */
+/**
+ * True if the scale contains a minor third — its tonality is minor.
+ *
+ * Tests for the interval, not for a fixed array position. Position 2 is only
+ * the third in a seven-note scale; in Pentatonic Minor [0,3,5,7,10] and Blues
+ * [0,3,5,6,7,10] the entry at index 2 is a 5, so an index test calls both of
+ * them major. Checking for the interval itself is correct for all of SCALES.
+ */
 export function isMinorTonality(scale: ScaleDef): boolean {
-  return scale.intervals[2] === 3
+  return scale.intervals.includes(3)
+}
+
+/**
+ * A short diatonic loop to practise over. One bar per chord unless `bars`
+ * says otherwise, repeated forever by useBackingTrack.
+ *
+ * Deliberately short and predictable: the point is a harmony you stop
+ * listening to after one pass, so attention is free for finding notes.
+ * Real songs live on the Songs page.
+ */
+export interface Vamp {
+  label: string
+  tonality: 'major' | 'minor'
+  chords: readonly ChordSpec[]
+}
+
+export const VAMPS: readonly Vamp[] = [
+  {
+    label: 'I–IV–V–IV',
+    tonality: 'major',
+    chords: [{ degree: 0 }, { degree: 3 }, { degree: 4 }, { degree: 3 }],
+  },
+  {
+    label: 'I–V–vi–IV',
+    tonality: 'major',
+    chords: [{ degree: 0 }, { degree: 4 }, { degree: 5 }, { degree: 3 }],
+  },
+  {
+    label: 'ii–V–I',
+    tonality: 'major',
+    chords: [{ degree: 1 }, { degree: 4 }, { degree: 0, bars: 2 }],
+  },
+  {
+    label: 'i–VII–VI',
+    tonality: 'minor',
+    chords: [{ degree: 0 }, { degree: 6 }, { degree: 5, bars: 2 }],
+  },
+  {
+    label: 'i–iv–v',
+    tonality: 'minor',
+    chords: [{ degree: 0, bars: 2 }, { degree: 3 }, { degree: 4 }],
+  },
+  {
+    label: 'i–VI–III–VII',
+    tonality: 'minor',
+    chords: [{ degree: 0 }, { degree: 5 }, { degree: 2 }, { degree: 6 }],
+  },
+]
+
+/**
+ * Scales with fewer than seven notes have no diatonic triads, so
+ * getDiatonicChords returns null and no vamp can be built from them. They
+ * borrow the harmony of their parent scale instead.
+ *
+ * Only the backing track consults this. The neck still draws the scale you
+ * picked — five notes for a pentatonic. A minor pentatonic over Am–G–F is
+ * musically what is wanted, not a bodge.
+ */
+const VAMP_PARENT_SCALE: Readonly<Record<string, string>> = {
+  'Pentatonic Minor': 'Natural Minor (Aeolian)',
+  'Blues': 'Natural Minor (Aeolian)',
+  'Pentatonic Major': 'Major (Ionian)',
+}
+
+/**
+ * The scale a vamp's chords should be built from. Returns the scale itself
+ * for everything with seven notes.
+ */
+export function vampScale(scale: ScaleDef): ScaleDef {
+  const parentName = VAMP_PARENT_SCALE[scale.name]
+  if (!parentName) return scale
+  return SCALES.find(s => s.name === parentName) ?? scale
 }
 
