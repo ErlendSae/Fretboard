@@ -1,7 +1,10 @@
 # Claude / AI tooling
 .agents
 .claude
-.impeccable.md
+.archive
+CLAUDE.md
+/design
+/docs
 
 # Dependencies
 node_modules/
@@ -27,3 +30,4 @@ npm-debug.log*
 
 # Vite
 vite.config.ts.timestamp-*
+

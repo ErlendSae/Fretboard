@@ -34,11 +34,12 @@ export interface ScaleMarkerOptions {
   /** Label markers with scale degrees ("b3") instead of note names. */
   showDegrees?: boolean
   /**
-   * Notes of the chord sounding right now. When given, markers outside this set
-   * are muted and chord notes outside the scale are added — a borrowed chord's
-   * colour note has no scale marker to emphasize, so it must appear.
+   * Notes to show even though they sit outside the scale — the borrowed chord
+   * tones. The scale itself is untouched: nothing is muted and no marker moves,
+   * so passing the current bar's colour note adds one dot rather than
+   * repainting the shape.
    */
-  emphasize?: ReadonlySet<NoteName>
+  outsideNotes?: ReadonlySet<NoteName>
 }
 
 /**
@@ -46,7 +47,7 @@ export interface ScaleMarkerOptions {
  * Pure — no React, no module state.
  */
 export function buildScaleMarkers({
-  root, scale, fretRange, showDegrees, emphasize,
+  root, scale, fretRange, showDegrees, outsideNotes,
 }: ScaleMarkerOptions): FretMarker[] {
   const scaleNotes = getScaleNotes(root, scale)
   const chordTones = chordToneNotes(root, scale)
@@ -58,12 +59,12 @@ export function buildScaleMarkers({
     for (let f = lo; f <= hi; f++) {
       const note = fretToNote(s, f)
       const inScale = scaleNotes.has(note)
-      const inChord = emphasize?.has(note) ?? false
-      if (!inScale && !inChord) continue
+      const isOutside = !inScale && (outsideNotes?.has(note) ?? false)
+      if (!inScale && !isOutside) continue
 
       const interval = ((noteIndex(note) - rootIdx) + 12) % 12
       const variant: FretMarker['variant'] =
-        !inScale ? 'outside'                    // borrowed chord tone — the colour note
+        isOutside ? 'outside'                   // borrowed chord tone — the colour note
         : note === root ? 'root'
         : chordTones.has(note) ? 'chord'
         : 'scale'
@@ -73,7 +74,6 @@ export function buildScaleMarkers({
         fret: f,
         variant,
         label: showDegrees ? DEGREE_LABELS[interval]! : undefined,
-        muted: emphasize ? !inChord : false,
       })
     }
   }
