@@ -45,7 +45,7 @@ export default function PositionRow({ positions, selected, onSelect }: PositionR
           <span className="font-mono font-bold text-lg leading-none">All</span>
           <span
             className={`font-mono text-[10px] leading-none ${
-              selected === null ? 'text-terra-100' : 'text-stone-600'
+              selected === null ? 'text-stone-900' : 'text-stone-400'
             }`}
           >
             neck
@@ -68,7 +68,7 @@ export default function PositionRow({ positions, selected, onSelect }: PositionR
               <span className="font-mono font-bold text-lg leading-none">{p.numeral}</span>
               <span
                 className={`font-mono text-[10px] leading-none ${
-                  isActive ? 'text-terra-100' : 'text-stone-600'
+                  isActive ? 'text-stone-900' : 'text-stone-400'
                 }`}
               >
                 {p.fretRange[0]}–{p.fretRange[1]}

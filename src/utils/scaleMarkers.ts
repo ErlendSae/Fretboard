@@ -40,9 +40,9 @@ export interface ScaleMarkerOptions {
   showDegrees?: boolean
   /**
    * Notes to show even though they sit outside the scale — the borrowed chord
-   * tones. The scale itself is untouched: nothing is muted and no marker moves,
-   * so passing the current bar's colour note adds one dot rather than
-   * repainting the shape.
+   * tones. This option itself never mutes or moves a marker — only `focusRange`
+   * does that — so passing the current bar's colour note adds one dot rather
+   * than repainting the shape.
    */
   outsideNotes?: ReadonlySet<NoteName>
 }

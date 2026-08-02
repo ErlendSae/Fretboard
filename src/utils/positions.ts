@@ -66,8 +66,6 @@ const NUMERALS = ['I', 'II', 'III', 'IV', 'V'] as const
 const LOW_E_CHROMATIC = 4
 
 export interface Position {
-  /** 1-5, ordered up the neck. */
-  number: number
   /** Roman numeral for display. */
   numeral: string
   /** Inclusive [low, high] fret window. Always WINDOW_SPAN + 1 frets wide. */
@@ -87,7 +85,6 @@ export function getPositions(root: NoteName): Position[] {
     .map(([offset, shape]) => ({ shape, low: (lowEFret + offset) % 12 }))
     .sort((a, b) => a.low - b.low)
     .map(({ shape, low }, i) => ({
-      number: i + 1,
       numeral: NUMERALS[i]!,
       fretRange: [low, low + WINDOW_SPAN] as [number, number],
       shape,

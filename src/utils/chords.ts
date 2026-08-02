@@ -235,27 +235,31 @@ const VAMPS_SUPPORTED_SCALES: ReadonlySet<string> = new Set([
   'Blues',
 ])
 
+// VAMPS_SUPPORTED_SCALES was chosen to only contain names that filter to
+// exactly 3 vamps per tonality. That's a property of these two module
+// constants, not of any argument, so it's checked once here at import time
+// rather than on every vampsFor call. A future typo or rename of a scale/vamp
+// name that breaks this throws loudly during development rather than
+// silently returning a wrong or empty list in production.
+for (const tonality of ['major', 'minor'] as const) {
+  const count = VAMPS.filter(v => v.tonality === tonality).length
+  if (count !== 3) {
+    throw new Error(
+      `VAMPS invariant violated: expected 3 vamps of tonality "${tonality}", got ${count} — VAMPS_SUPPORTED_SCALES or VAMPS has drifted`,
+    )
+  }
+}
+
 /**
  * The vamps that honestly describe `scale`'s harmony, filtered to its
  * tonality. Returns `[]` for any scale outside VAMPS_SUPPORTED_SCALES — an
  * empty result means "drone only", and callers must not fall back to an
  * unfiltered vamp list.
- *
- * The `every` check is redundant today (VAMPS_SUPPORTED_SCALES was chosen to
- * only contain names that filter to exactly 3) but turns a future typo or
- * rename of a scale/vamp name into a thrown error during development rather
- * than a silently wrong or empty list in production.
  */
 export function vampsFor(scale: ScaleDef): readonly Vamp[] {
   if (!VAMPS_SUPPORTED_SCALES.has(scale.name)) return []
   const tonality = isMinorTonality(scale) ? 'minor' : 'major'
-  const filtered = VAMPS.filter(v => v.tonality === tonality)
-  if (filtered.length !== 3) {
-    throw new Error(
-      `vampsFor(${scale.name}): expected 3 vamps of tonality "${tonality}", got ${filtered.length} — VAMPS_SUPPORTED_SCALES or VAMPS has drifted`,
-    )
-  }
-  return filtered
+  return VAMPS.filter(v => v.tonality === tonality)
 }
 
 /**
@@ -276,6 +280,12 @@ const VAMP_PARENT_SCALE: Readonly<Record<string, string>> = {
 /**
  * The scale a vamp's chords should be built from. Returns the scale itself
  * for everything with seven notes.
+ *
+ * Side effect: this result also feeds useBackingTrack's default-BPM lookup,
+ * so substituting the parent scale quietly substitutes its tempo too (e.g.
+ * Blues 108→100 BPM, Pentatonic Major 78→85 BPM, since the parent scales
+ * carry different `genres`). Unintended but harmless — tempo stays
+ * user-adjustable.
  */
 export function vampScale(scale: ScaleDef): ScaleDef {
   const parentName = VAMP_PARENT_SCALE[scale.name]
