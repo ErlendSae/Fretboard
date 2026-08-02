@@ -135,7 +135,7 @@ export default function Explorer() {
         onSelect={setPositionIdx}
       />
 
-      <Fretboard markers={markers} />
+      <Fretboard markers={markers} focusRange={focusRange} />
 
       <FretboardLegend />
     </NeckPageLayout>

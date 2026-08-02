@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import NoteMarker, { type MarkerVariant } from './NoteMarker'
 import {
   NUM_STRINGS,
@@ -22,14 +23,24 @@ interface FretboardProps {
   onFretClick?: (stringIndex: number, fret: number) => void
   /** If true, clicking anywhere on a fret column triggers onFretClick (for quiz mode) */
   clickableStrings?: boolean
+  /**
+   * Frets to bring into view (inclusive), e.g. a practise position's
+   * `[low, high]` window. Purely a scroll hint — does not affect which
+   * markers are drawn or dimmed. `undefined` (the "All" case) never scrolls.
+   */
+  focusRange?: [number, number]
 }
 
 const FRET_WIDTH = 68   // px per fret column
 const STRING_GAP = 36   // px between strings
 const NECK_PADDING_V = 24 // top/bottom padding inside neck
 const MARKER_SIZE = 26
+const STRING_LABEL_WIDTH = 24 // px reserved left of nut for string name labels
+// Slack, in px, tolerated before we consider the scroller "not fully scrolled" —
+// avoids the fade flickering on sub-pixel scroll positions.
+const SCROLL_EPSILON = 4
 
-export default function Fretboard({ markers = [], onFretClick, clickableStrings }: FretboardProps) {
+export default function Fretboard({ markers = [], onFretClick, clickableStrings, focusRange }: FretboardProps) {
   const neckHeight = (NUM_STRINGS - 1) * STRING_GAP + NECK_PADDING_V * 2
   const neckWidth = (NUM_FRETS + 1) * FRET_WIDTH
 
@@ -39,17 +50,79 @@ export default function Fretboard({ markers = [], onFretClick, clickableStrings 
     markerMap.set(`${m.stringIndex}-${m.fret}`, m)
   }
 
-  const STRING_LABEL_WIDTH = 24 // px reserved left of nut for string name labels
+  const scrollerRef = useRef<HTMLDivElement>(null)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  // Scroll the selected position's window into view. Runs only when
+  // `focusRange` itself changes — not on every render — so it never fights
+  // the user's own manual scrolling. Selecting "All" (focusRange undefined)
+  // is a no-op by design.
+  useEffect(() => {
+    const el = scrollerRef.current
+    if (!el || !focusRange) return
+
+    const [low, high] = focusRange
+    // Each fret's clickable cell spans from the previous fret line to its
+    // own, so the window runs from the start of `low`'s cell to the end of
+    // `high`'s — matching what the dimmed/lit markers actually occupy.
+    const windowLeft = STRING_LABEL_WIDTH + (low - 1) * FRET_WIDTH
+    const windowRight = STRING_LABEL_WIDTH + high * FRET_WIDTH
+    const windowWidth = windowRight - windowLeft
+
+    const containerWidth = el.clientWidth
+    const maxScrollLeft = Math.max(0, el.scrollWidth - containerWidth)
+
+    // Centre the window when it fits; when it's wider than the visible
+    // container (common on phones, where a 5-fret span can exceed the
+    // screen), align its low fret near the left edge instead so the part of
+    // the position closest to the nut — where most fingerings start — is
+    // the first thing in view.
+    const target = windowWidth <= containerWidth
+      ? windowLeft - (containerWidth - windowWidth) / 2
+      : windowLeft - 12
+
+    const scrollLeft = Math.min(maxScrollLeft, Math.max(0, target))
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    el.scrollTo({ left: scrollLeft, behavior: prefersReducedMotion ? 'auto' : 'smooth' })
+  }, [focusRange])
+
+  // Track whether there's more neck to the right than is currently visible,
+  // so the fade only ever shows when it's telling the truth.
+  useEffect(() => {
+    const el = scrollerRef.current
+    if (!el) return
+
+    const update = () => {
+      setCanScrollRight(el.scrollWidth - el.clientWidth - el.scrollLeft > SCROLL_EPSILON)
+    }
+    update()
+
+    el.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      el.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [])
 
   return (
     <div
-      className="relative overflow-x-auto pb-2"
+      ref={scrollerRef}
+      className="relative overflow-x-auto pb-2 rounded-xl
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terra-500
+        focus-visible:ring-offset-2 focus-visible:ring-offset-stone-900"
       style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
+      tabIndex={0}
+      role="region"
+      aria-label="Fretboard, scrollable — use arrow keys to see more frets"
     >
-      {/* Right-edge fade — mobile only, hints that the fretboard scrolls horizontally */}
+      {/* Right-edge fade — shown only while there's unseen neck to the right,
+          at any breakpoint (the neck overflows even on desktop at 15 frets). */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-stone-900 to-transparent md:hidden z-10"
+        className={`pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-stone-900 to-transparent z-10
+          transition-opacity duration-150 ${canScrollRight ? 'opacity-100' : 'opacity-0'}`}
       />
       {/* Outer wrapper adds left room for string name labels */}
       <div className="relative inline-block" style={{ paddingLeft: STRING_LABEL_WIDTH }}>
