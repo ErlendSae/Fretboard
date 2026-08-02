@@ -13,6 +13,8 @@ export interface FretMarker {
   variant: MarkerVariant
   /** Custom text to display instead of the note name (e.g. "1", "b3", "5") */
   label?: string
+  /** Dim this marker — in the key but not in the chord sounding now. */
+  muted?: boolean
 }
 
 interface FretboardProps {
@@ -165,6 +167,7 @@ export default function Fretboard({ markers = [], onFretClick, clickableStrings 
                     note={note}
                     label={marker.label}
                     variant={marker.variant}
+                    muted={marker.muted}
                     size={MARKER_SIZE}
                     onClick={onFretClick && !clickableStrings ? () => onFretClick(s, f) : undefined}
                   />
